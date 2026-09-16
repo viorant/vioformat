@@ -1,0 +1,30 @@
+# INVALID — §1.3: an artifact body with no manifest index entry is outside the signed manifest. Expect: reject (orphan_body).
+vio: 1
+manifest:
+  id: bad_orphan
+  name: Orphan
+  version: 0.1.0
+  composition: prompt
+  org: example
+  team: docs
+  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
+  created: 2026-09-16T00:00:00Z
+  artifacts:
+    - { id: p, type: prompt, deploy: registry, digest: "sha256:0000", sig: "base64" }
+artifacts:
+  - id: p
+    type: prompt
+    mode: chat
+    content:
+      system: |
+        Hello {{name}}.
+    variables:
+      - { name: name, type: string, required: true, source: input }
+    bindings:
+      name: input.name
+  - id: ghost
+    type: prompt
+    mode: chat
+    content:
+      system: |
+        I am not in the manifest.

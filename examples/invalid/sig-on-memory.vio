@@ -1,0 +1,27 @@
+# INVALID — §2.1: memory is integrity-only and must never carry a `sig`. Expect: reject (trust_tier).
+vio: 1
+manifest:
+  id: bad_mem
+  name: Bad Memory
+  version: 0.1.0
+  composition: agent
+  framework: crewai
+  org: example
+  team: docs
+  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
+  created: 2026-09-16T00:00:00Z
+  artifacts:
+    - { id: agent, type: agent,  deploy: runtime, digest: "sha256:1111", sig: "base64" }
+    - { id: mem,   type: memory, deploy: store,   digest: "sha256:2222", sig: "base64" }
+artifacts:
+  - id: agent
+    type: agent
+    content: { role: R, goal: G, framework: crewai, memory: { ref: mem } }
+  - id: mem
+    type: memory
+    content: |
+      ---
+      meta: {id: 01M1NC0WFNSS0WWN1690VY2FR8, schemaVersion: "1"}
+      name: Memory 1
+      ---
+      text

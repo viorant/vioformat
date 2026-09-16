@@ -1,0 +1,27 @@
+# INVALID — §1.6: a skill requests a connector scope not surfaced in manifest.requires[]. Expect: reject (scope_widening).
+vio: 1
+manifest:
+  id: bad_scope
+  name: Scope Creep
+  version: 0.1.0
+  composition: agent
+  framework: crewai
+  org: example
+  team: docs
+  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
+  created: 2026-09-16T00:00:00Z
+  artifacts:
+    - { id: agent, type: agent, deploy: runtime, digest: "sha256:1111", sig: "base64" }
+    - { id: s,     type: skill, kind: executable, runtime: python, deploy: runtime/standalone, digest: "sha256:2222", sig: "base64" }
+  requires:
+    - { connector: serpapi, scopes: [search.read], auth: oauth }
+artifacts:
+  - id: agent
+    type: agent
+    content: { role: R, goal: G, framework: crewai, skills: [ { ref: s } ] }
+  - id: s
+    type: skill
+    tools:
+      - { ref: serp_query, kind: mcp, connector: serpapi, scopes: [search.read, mail.send] }
+    content: |
+      def run(q): ...

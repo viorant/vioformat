@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vioformat.org/schema/v1/vio.schema.json",
+  "title": ".vio artifact bundle",
+  "description": "Structural schema for a .vio bundle, format version 1. NON-NORMATIVE: the specification in spec/v1/index.md is authoritative. JSON Schema cannot express the format's cross-cutting rules (trust tiers, connector-scope surfacing, digest subjects, credential invariants) — those are checked by tools/vio-lint and by the conformance suite.",
+  "type": "object",
+  "required": ["vio", "manifest"],
+  "additionalProperties": false,
+  "properties": {
+    "vio": { "type": "integer", "enum": [1], "description": "Format version. A reader rejects a version it does not implement." },
+    "manifest": { "$ref": "#/$defs/manifest" },
+    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/body" } }
+  },
+  "$defs": {
+    "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]+$" },
+    "manifest": {
+      "type": "object",
+      "required": ["id", "name", "version", "composition", "signer", "created", "artifacts"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "version": { "type": "string", "description": "semver; unrelated to the format version" },
+        "composition": { "enum": ["agent", "prompt", "skill", "memory", "model", "bundle"] },
+        "framework": { "type": ["string", "null"], "description": "Open set; adapters are listed on the Ecosystem page. Known: crewai, langchain, autogen, claude-sdk, vercel-ai, adk" },
+        "org": { "type": "string" },
+        "team": { "type": "string" },
+        "created": { "type": "string", "format": "date-time" },
+        "signer": {
+          "type": "object",
+          "required": ["certificate_id", "algo_id"],
+          "properties": {
+            "certificate_id": { "type": "string" },
+            "algo_id": { "description": "0x02 RSA-2048+ECDSA-P256 (default), 0x03 with Dilithium, 0x04 Ed25519" }
+          }
+        },
+        "artifacts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/indexEntry" } },
+        "requires": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "object", "required": ["ref", "digest"], "properties": { "ref": { "type": "string" }, "digest": { "$ref": "#/$defs/digest" } } },
+              { "type": "object", "required": ["connector"], "properties": { "connector": { "type": "string" }, "scopes": { "type": "array", "items": { "type": "string" } }, "auth": { "type": "string" } } }
+            ]
+          }
+        }
+      }
+    },
+    "indexEntry": {
+      "type": "object",
+      "required": ["id", "type", "deploy", "digest"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "enum": ["prompt", "skill", "memory", "model", "agent"] },
+        "kind": { "enum": ["declarative", "executable"] },
+        "runtime": { "enum": ["python", "js"] },
+        "entry": { "type": "string" },
+        "deploy": { "enum": ["runtime", "runtime/standalone", "registry", "store"] },
+        "digest": { "$ref": "#/$defs/digest" },
+        "sig": { "type": "string", "description": "Authored artifacts only (prompt, skill, agent). See spec §2.1." },
+        "ref": { "type": "string" },
+        "engine": { "type": "string", "description": "model only" },
+        "quantization": { "type": "string" },
+        "context_length": { "type": "integer" },
+        "served_as": { "type": "string" },
+        "params": { "type": "object" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "model" } }, "required": ["type"] },
+          "then": { "required": ["ref"], "not": { "required": ["sig"] } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "memory" } }, "required": ["type"] },
+          "then": { "not": { "required": ["sig"] } }
+        },
+        {
+          "if": { "properties": { "type": { "const": "skill" }, "kind": { "const": "executable" } }, "required": ["type", "kind"] },
+          "then": { "required": ["runtime"] }
+        }
+      ]
+    },
+    "variable": {
+      "type": "object",
+      "required": ["name", "source"],
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "required": { "type": "boolean" },
+        "source": { "enum": ["input", "env", "task", "connector", "secret", "static"] },
+        "default": {},
+        "values": { "type": "array" }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "required": ["ref", "kind"],
+      "properties": {
+        "ref": { "type": "string" },
+        "kind": { "enum": ["viorant", "mcp"] },
+        "connector": { "type": "string" },
+        "scopes": { "type": "array", "items": { "type": "string" } }
+      },
+      "if": { "properties": { "kind": { "const": "mcp" } }, "required": ["kind"] },
+      "then": { "required": ["connector"] }
+    },
+    "body": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "enum": ["prompt", "skill", "memory", "model", "agent"] },
+        "mode": { "enum": ["chat", "single_shot"], "description": "prompt only" },
+        "layer": { "enum": ["seed", "runtime"], "description": "memory only; omitted means seed. Not part of the digest subject." },
+        "entry": { "type": "string" },
+        "files": { "type": "object", "additionalProperties": { "type": "string" } },
+        "tools": { "type": "array", "items": { "$ref": "#/$defs/tool" } },
+        "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
+        "bindings": { "type": "object" },
+        "content": {}
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "model" } }, "required": ["type"] },
+          "then": { "not": { "anyOf": [ { "required": ["content"] }, { "required": ["files"] } ] } }
+        }
+      ]
+    }
+  }
+}

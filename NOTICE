@@ -1,0 +1,18 @@
+The VIO Project — the .vio artifact format
+Copyright 2026 Viorant Inc. and the VIO Project contributors
+
+This product includes software developed by Viorant Inc. and contributors to
+the VIO Project (https://github.com/viorant/vioformat).
+
+Licensing is split by directory:
+  - Reference tooling, skills, website source ......... Apache-2.0   (LICENSE)
+  - Specification, schema, examples, conformance ...... CC-BY-4.0    (spec/LICENSE)
+
+Patent rights in the format are granted royalty-free to conforming
+implementations by the covenant in PATENTS.md. That covenant does not extend to
+the Viorant Helix deployment engine or the Viorant Sign substrate, which are the
+subject of separate patent applications and separate products.
+
+".vio", "VIO", "the VIO Project" and "VIO Conformant" are trademarks of
+Viorant Inc. and are NOT licensed by the Apache-2.0 or CC-BY-4.0 grants.
+See TRADEMARKS.md.

@@ -1,0 +1,32 @@
+# Adapter id registry — the .vio artifact format
+#
+# An adapter id is a NAME, not a semantic. Registration reserves the name and records who
+# maintains the adapter. It is NOT a statement that any particular deployer supports it.
+#
+# To register: open a pull request adding a row. Anyone may register. Registration is not
+# gated by any implementation, Viorant's included. See ADR-038.
+#
+# kind: framework | memory | target | (further kinds by specification revision)
+version: 1
+adapters:
+  # --- framework ---
+  - { id: crewai,     kind: framework, maintainer: "the VIO Project", status: implemented }
+  - { id: langchain,  kind: framework, maintainer: "the VIO Project", status: reserved }
+  - { id: autogen,    kind: framework, maintainer: "the VIO Project", status: reserved }
+  - { id: acp,        kind: framework, maintainer: "the VIO Project", status: reserved }
+  - { id: claude-sdk, kind: framework, maintainer: "the VIO Project", status: reserved }
+  - { id: vercel-ai,  kind: framework, maintainer: "the VIO Project", status: reserved }
+  - { id: adk,        kind: framework, maintainer: "the VIO Project", status: reserved }
+  # --- memory ---
+  - { id: filesystem, kind: memory, maintainer: "the VIO Project", status: implemented }
+  - { id: qdrant,     kind: memory, maintainer: "the VIO Project", status: reserved }
+  - { id: weaviate,   kind: memory, maintainer: "the VIO Project", status: reserved }
+  - { id: pinecone,   kind: memory, maintainer: "the VIO Project", status: reserved }
+  - { id: pgvector,   kind: memory, maintainer: "the VIO Project", status: reserved }
+  - { id: chroma,     kind: memory, maintainer: "the VIO Project", status: reserved }
+  # --- target ---
+  - { id: local,      kind: target, maintainer: "the VIO Project", status: implemented }
+  - { id: aws,        kind: target, maintainer: "the VIO Project", status: reserved }
+  - { id: gcp,        kind: target, maintainer: "the VIO Project", status: reserved }
+  - { id: azure,      kind: target, maintainer: "the VIO Project", status: reserved }
+  - { id: on-prem,    kind: target, maintainer: "the VIO Project", status: reserved }

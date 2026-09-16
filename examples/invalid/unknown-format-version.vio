@@ -1,0 +1,25 @@
+# INVALID for a v1 reader — §1: a reader rejects a format version it does not implement. Expect: reject (unsupported_version).
+# The smallest conforming bundle: one signed prompt, deployed to a registry.
+vio: 2
+manifest:
+  id: hello
+  name: Hello
+  version: 0.1.0
+  composition: prompt
+  org: example
+  team: docs
+  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
+  created: 2026-09-16T00:00:00Z
+  artifacts:
+    - { id: greet, type: prompt, deploy: registry, digest: "sha256:0000", sig: "base64" }
+artifacts:
+  - id: greet
+    type: prompt
+    mode: single_shot
+    content:
+      system: |
+        You greet {{name}} warmly.
+    variables:
+      - { name: name, type: string, required: true, source: input }
+    bindings:
+      name: input.name

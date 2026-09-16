@@ -1,0 +1,13 @@
+{
+  "name": "@vio/lint",
+  "version": "0.1.0",
+  "description": "Reference Level 1 linter for the .vio artifact format",
+  "license": "SEE LICENSE IN ../../LICENSE",
+  "type": "commonjs",
+  "bin": { "vio-lint": "./index.js" },
+  "main": "lint.js",
+  "files": ["index.js", "lint.js", "rules.js", "README.md"],
+  "scripts": { "test": "node test/run.js" },
+  "dependencies": { "js-yaml": "^4.1.0" },
+  "engines": { "node": ">=18" }
+}

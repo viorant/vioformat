@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>.vio — the signed artifact format for AI agents</title>
+<meta name="author" content="Vivien Roggero, Adi Vora">
+<meta name="description" content="VIO — Verifiable Intelligence Object. The .vio artifact format: an open, signed, framework-neutral artifact format for AI agents. One YAML document carries what an agent knows, does and remembers — and the signatures that prove who authored it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F7F5; --paper-2:#EFEFEB; --ink:#141412; --ink-2:#3B3B37; --ink-3:#6E6E68; --rule:#D9D9D3; --rule-2:#C4C4BC;
+  --accent:#F59E0B; --accent-ink:#B45309; --accent-soft:#FDF1DC; --warn:#6B5A3A; --warn-soft:#EEEBE4; --code-bg:#1B1B19; --code-ink:#E9E9E4;
+  --sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --max:1180px; --radius:4px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --paper:#0A0A0B; --paper-2:#151516; --ink:#ECECE7; --ink-2:#C9C9C2; --ink-3:#8F8F88; --rule:#2C2D29; --rule-2:#3B3C37;
+  --accent:#F59E0B; --accent-ink:#FBBF24; --accent-soft:#2A1F0B; --warn:#D9A84A; --warn-soft:#2B2413; --code-bg:#0C0D0B; --code-ink:#E2E2DC;
+}}
+:root[data-theme="dark"]{
+  --paper:#0A0A0B; --paper-2:#151516; --ink:#ECECE7; --ink-2:#C9C9C2; --ink-3:#8F8F88; --rule:#2C2D29; --rule-2:#3B3C37;
+  --accent:#F59E0B; --accent-ink:#FBBF24; --accent-soft:#2A1F0B; --warn:#D9A84A; --warn-soft:#2B2413; --code-bg:#0C0D0B; --code-ink:#E2E2DC;
+}
+*{box-sizing:border-box} html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none} a:hover{text-decoration:underline;text-underline-offset:3px}
+code,pre,kbd{font-family:var(--mono)}
+code{font-size:.9em;background:var(--paper-2);padding:.1em .35em;border-radius:3px}
+pre{background:var(--code-bg);color:var(--code-ink);padding:18px 20px;border-radius:var(--radius);overflow-x:auto;font-size:13px;line-height:1.6;margin:0}
+pre code{background:none;padding:0;font-size:inherit;color:inherit}
+.wrap{max-width:var(--max);margin:0 auto;padding:0 28px}
+h1,h2,h3,h4{font-weight:600;letter-spacing:-.01em;margin:0}
+h1{font-size:clamp(38px,5.2vw,64px);line-height:1.02;letter-spacing:-.025em}
+h2{font-size:clamp(26px,3vw,36px);line-height:1.15;letter-spacing:-.02em}
+h3{font-size:19px;line-height:1.3}
+p{margin:0 0 1em} .lead{font-size:19px;color:var(--ink-2);max-width:62ch}
+.muted{color:var(--ink-3)} .small{font-size:13.5px}
+hr{border:0;border-top:1px solid var(--rule);margin:0}
+/* nav */
+.nav{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--paper) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.nav .wrap{display:flex;align-items:center;height:64px;gap:28px}
+.brand{font-family:var(--mono);font-weight:500;font-size:17px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.brand .dot{width:10px;height:10px;background:var(--accent);border-radius:2px}
+.nav ul{display:flex;gap:20px;list-style:none;margin:0 0 0 auto;padding:0;font-size:14.5px}
+.nav li a{color:var(--ink-2);padding:6px 0;border-bottom:2px solid transparent}
+.nav li a.active{color:var(--ink);border-bottom-color:var(--accent)}
+.nav li a:hover{text-decoration:none;color:var(--ink)}
+.navtoggle{display:none;margin-left:auto;background:none;border:1px solid var(--rule-2);color:var(--ink);padding:6px 10px;border-radius:var(--radius);font:inherit;font-size:13px}
+@media (max-width:1250px){ .brand span.muted{display:none} }
+@media (max-width:1100px){ .nav ul{gap:14px;font-size:13.5px} }
+@media (max-width:860px){ .nav ul{display:none;position:absolute;left:0;right:0;top:64px;background:var(--paper);border-bottom:1px solid var(--rule);flex-direction:column;gap:0;padding:8px 28px 12px}
+  .nav ul.open{display:flex} .nav li a{display:block;padding:10px 0} .navtoggle{display:block} }
+/* page switching */
+.page{display:none} .page.active{display:block}
+section{padding:72px 0} section.tight{padding:48px 0}
+.grid{display:grid;gap:24px} .g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:900px){ .g3,.g4{grid-template-columns:1fr 1fr} } @media (max-width:600px){ .g2,.g3,.g4{grid-template-columns:1fr} }
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:var(--radius);font-weight:500;font-size:15px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);white-space:nowrap;transition:transform .08s}
+.btn:hover{text-decoration:none;opacity:.92} .btn:active{transform:translateY(1px)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule-2)} .btn.ghost:hover{border-color:var(--ink)}
+.btnrow{display:flex;gap:12px;flex-wrap:wrap}
+/* pills / badges */
+.tag{display:inline-block;font-family:var(--mono);font-size:11.5px;padding:3px 8px;border:1px solid var(--rule-2);border-radius:3px;color:var(--ink-2);white-space:nowrap}
+.tag.ok{border-color:var(--accent);color:var(--accent-ink);background:var(--accent-soft)}
+.tag.spec{border-color:var(--rule-2);color:var(--ink-2);background:var(--paper-2)}
+.tag.plan{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:14.5px}
+th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:600;font-size:13px;color:var(--ink-2);background:var(--paper-2)}
+td code{white-space:nowrap} .tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:var(--radius)}
+/* hero */
+.hero{padding:88px 0 64px;border-bottom:1px solid var(--rule)}
+.hero .kicker{font-size:18px;color:var(--ink-3);margin-bottom:18px;max-width:60ch}
+.hero .kicker b{color:var(--ink-2);font-weight:500}
+.hero h1 code{background:none;padding:0;font-size:.95em;font-weight:500;color:var(--accent-ink)}
+.hero .lead{margin:24px 0 32px}
+.status{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--rule);border-radius:var(--radius);margin-top:40px;font-family:var(--mono);font-size:13px}
+.status > div{padding:14px 18px;border-right:1px solid var(--rule);flex:1 1 auto;min-width:150px}
+.status > div:last-child{border-right:0} .status .k{display:block;color:var(--ink-3);font-size:11px;margin-bottom:5px} .status .v{color:var(--ink)}
+/* triptych */
+.trip{display:grid;grid-template-columns:1fr 1fr 1.25fr;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden}
+.trip > div{padding:28px 26px;border-right:1px solid var(--rule)} .trip > div:last-child{border-right:0;background:var(--accent-soft)}
+.trip .lbl{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-bottom:12px} .trip h3{margin-bottom:10px} .trip p{font-size:14.5px;color:var(--ink-2);margin:0}
+@media (max-width:820px){ .trip{grid-template-columns:1fr} .trip > div{border-right:0;border-bottom:1px solid var(--rule)} .trip > div:last-child{border-bottom:0} }
+/* type cards */
+.types{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden}
+.types > a{display:block;padding:22px 20px;border-right:1px solid var(--rule);color:inherit}
+.types > a:last-child{border-right:0} .types > a:hover{background:var(--paper-2);text-decoration:none}
+.types .n{font-family:var(--mono);font-size:22px;font-weight:500;margin-bottom:6px} .types .tier{font-size:12.5px;margin-bottom:12px} .types p{font-size:13.5px;color:var(--ink-2);margin:0}
+@media (max-width:1000px){ .types{grid-template-columns:repeat(3,1fr)} .types > a:nth-child(3n){border-right:0} .types > a{border-bottom:1px solid var(--rule)} }
+@media (max-width:600px){ .types{grid-template-columns:1fr 1fr} .types > a:nth-child(3n){border-right:1px solid var(--rule)} .types > a:nth-child(2n){border-right:0} }
+/* stack diagram */
+.stack{display:grid;grid-template-columns:120px 1fr;gap:0;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;font-size:14.5px}
+.stack > div{padding:18px 20px;border-bottom:1px solid var(--rule)} .stack > div:nth-last-child(-n+2){border-bottom:0}
+.stack .l{font-family:var(--mono);font-weight:500;background:var(--paper-2);border-right:1px solid var(--rule)} .stack .l.hi{background:var(--accent-soft);color:var(--accent-ink)}
+.stack .r{color:var(--ink-2)} .stack .r b{color:var(--ink);font-weight:500}
+/* honesty */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:start} @media (max-width:860px){ .split{grid-template-columns:1fr;gap:32px} }
+.ledger{border-top:1px solid var(--ink)} .ledger > div{display:grid;grid-template-columns:1fr auto;gap:16px;padding:14px 0;border-bottom:1px solid var(--rule);font-size:15px;align-items:center}
+/* terminal */
+.term{background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius);padding:22px 24px;font-family:var(--mono);font-size:13.5px;line-height:1.7}
+.term .c{color:#8A8A82} .term .ok{color:#FBBF24} .term .bad{color:#F08C7C} .term .p{color:#B8B8B0}
+/* footer */
+footer{border-top:1px solid var(--rule);padding:56px 0 40px;font-size:14px}
+.fcols{display:grid;grid-template-columns:repeat(5,1fr);gap:28px} @media (max-width:900px){ .fcols{grid-template-columns:1fr 1fr} } @media (max-width:520px){ .fcols{grid-template-columns:1fr} }
+.fcols h4{font-size:13px;margin-bottom:12px;color:var(--ink-3);font-weight:500} .fcols ul{list-style:none;margin:0;padding:0} .fcols li{margin-bottom:8px} .fcols a{color:var(--ink-2)}
+.fbottom{margin-top:40px;padding-top:20px;border-top:1px solid var(--rule);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--ink-3);font-size:13px}
+/* doc pages */
+.doc{display:grid;grid-template-columns:230px 1fr;gap:56px;padding:56px 0 96px}
+@media (max-width:900px){ .doc{grid-template-columns:1fr;gap:24px} .toc{position:static!important} }
+.toc{position:sticky;top:88px;align-self:start;font-size:13.5px}
+.toc ul{list-style:none;margin:0;padding:0} .toc li{margin:0} .toc a{display:block;padding:5px 0 5px 12px;border-left:1px solid var(--rule);color:var(--ink-3)}
+.toc a:hover{color:var(--ink);text-decoration:none} .toc a.sub{padding-left:24px;font-size:13px}
+.toc .h{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin:18px 0 6px} .toc .h:first-child{margin-top:0}
+.body{max-width:76ch;min-width:0} .body h2{margin:56px 0 16px;padding-top:12px} .body h2:first-child{margin-top:0} .body h3{margin:36px 0 12px} .body h4{margin:24px 0 8px;font-size:15.5px}
+.body p,.body li{color:var(--ink-2)} .body b,.body strong{color:var(--ink);font-weight:600}
+.body pre{margin:16px 0 22px} .body .tablewrap{margin:16px 0 22px} .body table{font-size:14px}
+.body ul,.body ol{padding-left:22px} .body li{margin-bottom:6px}
+.note{border-left:3px solid var(--accent);background:var(--accent-soft);padding:14px 18px;border-radius:0 var(--radius) var(--radius) 0;margin:18px 0 22px;font-size:14.5px}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note p:last-child{margin:0}
+.hist{border:1px dashed var(--rule-2);padding:14px 18px;border-radius:var(--radius);font-size:14px;color:var(--ink-2);margin:0 0 28px}
+.anchor{color:var(--ink-3);font-weight:400;font-size:.7em;margin-left:8px;opacity:0;font-family:var(--mono)} h2:hover .anchor,h3:hover .anchor{opacity:1}
+/* reference explorer */
+.explorer{display:grid;grid-template-columns:1fr;gap:18px}
+.search{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.search input{flex:1 1 280px;font:inherit;font-size:15px;padding:11px 14px;border:1px solid var(--rule-2);border-radius:var(--radius);background:var(--paper);color:var(--ink)}
+.search input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.chips{display:flex;gap:8px;flex-wrap:wrap} .chip{font:inherit;font-size:13px;padding:6px 12px;border:1px solid var(--rule-2);background:var(--paper);color:var(--ink-2);border-radius:999px;cursor:pointer}
+.chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.rows{border-top:1px solid var(--ink)} .row{display:grid;grid-template-columns:200px 120px 1fr;gap:18px;padding:14px 0;border-bottom:1px solid var(--rule);font-size:14.5px}
+.row code{white-space:normal} .row .path{font-family:var(--mono);font-size:13.5px} .row .where{font-family:var(--mono);font-size:12px;color:var(--ink-3)} .row .desc{color:var(--ink-2)}
+.row .desc .vals{display:block;margin-top:6px;font-family:var(--mono);font-size:12.5px;color:var(--ink-3)}
+@media (max-width:760px){ .row{grid-template-columns:1fr;gap:4px} }
+.empty{padding:36px 0;color:var(--ink-3)}
+/* validator */
+.play{display:grid;grid-template-columns:1fr 1fr;gap:20px} @media (max-width:900px){ .play{grid-template-columns:1fr} }
+textarea{width:100%;min-height:420px;font-family:var(--mono);font-size:13px;line-height:1.55;padding:14px;border:1px solid var(--rule-2);border-radius:var(--radius);background:var(--code-bg);color:var(--code-ink);resize:vertical}
+textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+.report{border:1px solid var(--rule);border-radius:var(--radius);padding:6px 0;font-size:14px;background:var(--paper-2);min-height:420px}
+.report .line{display:grid;grid-template-columns:22px 1fr;gap:10px;padding:9px 16px;border-bottom:1px solid var(--rule)} .report .line:last-child{border-bottom:0}
+.report .ico{font-family:var(--mono);font-weight:500} .report .pass .ico{color:var(--accent-ink)} .report .fail .ico{color:#C9412F} .report .warn .ico{color:var(--warn)} .report .info .ico{color:var(--ink-3)}
+.report .line small{display:block;color:var(--ink-3);margin-top:2px}
+.verdict{padding:14px 16px;font-family:var(--mono);font-size:13px;border-bottom:1px solid var(--rule)}
+.copybtn{position:absolute;top:10px;right:10px;font:inherit;font-family:var(--mono);font-size:11.5px;padding:4px 9px;background:transparent;color:#B8B8B0;border:1px solid #3B3C37;border-radius:3px;cursor:pointer}
+.copybtn:hover{color:#fff;border-color:#8A8A82} .codewrap{position:relative}
+/* eco */
+.eco{border-top:1px solid var(--ink)} .eco > div{display:grid;grid-template-columns:200px 1fr auto;gap:20px;padding:18px 0;border-bottom:1px solid var(--rule);align-items:start;font-size:15px}
+.eco .who{font-weight:500} .eco .what{color:var(--ink-2);font-size:14.5px} @media (max-width:700px){ .eco > div{grid-template-columns:1fr} }
+.tl{border-left:1px solid var(--rule-2);margin-left:6px;padding-left:24px} .tl > div{position:relative;padding-bottom:28px}
+.tl > div::before{content:"";position:absolute;left:-29px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--paper);border:2px solid var(--ink)}
+.tl .d{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);margin-bottom:4px} .tl h3{margin-bottom:6px} .tl p{color:var(--ink-2);font-size:14.5px;margin:0}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden}
+.levels > div{padding:26px 24px;border-right:1px solid var(--rule)} .levels > div:last-child{border-right:0}
+.levels .lv{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-bottom:8px} .levels ul{padding-left:18px;margin:12px 0 0;font-size:14px;color:var(--ink-2)} .levels li{margin-bottom:6px}
+@media (max-width:800px){ .levels{grid-template-columns:1fr} .levels > div{border-right:0;border-bottom:1px solid var(--rule)} .levels > div:last-child{border-bottom:0} }
+.sr{position:absolute;left:-9999px}
+.sub{color:var(--ink-3);font-size:14px;margin-top:12px}
+.ver{border-top:1px solid var(--ink)} .ver > div{display:grid;grid-template-columns:150px 1fr 1fr;gap:20px;padding:18px 0;border-bottom:1px solid var(--rule);font-size:14.5px;align-items:start}
+.ver .v{font-family:var(--mono);font-size:13px} .ver .v b{display:block;color:var(--ink);font-weight:500;font-size:14px;margin-bottom:3px} .ver .v span{color:var(--ink-3)} .ver .what{color:var(--ink-2)} .ver .who{color:var(--ink)} .ver .who small{display:block;color:var(--ink-3);font-size:12.5px}
+@media (max-width:760px){ .ver > div{grid-template-columns:1fr;gap:6px} }
+.people{display:grid;grid-template-columns:repeat(3,1fr);gap:24px} @media (max-width:800px){ .people{grid-template-columns:1fr} }
+.person{border-top:2px solid var(--accent);padding-top:14px} .person h3{margin-bottom:2px} .person .role{color:var(--ink-3);font-size:13.5px;margin-bottom:10px} .person p{font-size:14px;color:var(--ink-2);margin:0}
+.two{columns:2;column-gap:40px} @media (max-width:760px){ .two{columns:1} }
+.dl{display:grid;grid-template-columns:180px 1fr;gap:10px 20px;font-size:14.5px} .dl dt{font-family:var(--mono);font-size:13.5px;color:var(--ink)} .dl dd{margin:0;color:var(--ink-2)} @media (max-width:600px){ .dl{grid-template-columns:1fr} .dl dd{margin-bottom:8px} }
+</style>
+</head>
+<body>
+<a class="sr" href="#main">Skip to content</a>
+<nav class="nav"><div class="wrap">
+  <a class="brand" href="#/"><span class="dot"></span>.vio<span class="muted" style="font-weight:400;font-size:12.5px;margin-left:6px;letter-spacing:0">the VIO Project</span></a>
+  <button class="navtoggle" id="navtoggle" aria-expanded="false">Menu</button>
+  <ul id="navlist">
+    <li><a href="#/spec" data-nav="spec">Specification</a></li>
+    <li><a href="#/reference" data-nav="reference">Reference</a></li>
+    <li><a href="#/integrate" data-nav="integrate">Integrate</a></li>
+    <li><a href="#/ecosystem" data-nav="ecosystem">Ecosystem</a></li>
+    <li><a href="#/conformance" data-nav="conformance">Conformance</a></li>
+    <li><a href="#/governance" data-nav="governance">Governance</a></li>
+    <li><a href="#/contributors" data-nav="contributors">Contributors</a></li>
+    <li><a href="https://github.com/viorant/vioformat" rel="noopener">GitHub</a></li>
+  </ul>
+</div></nav>
+<main id="main">
+<!-- ===================== HOME ===================== -->
+<div class="page" id="page-home">
+<section class="hero"><div class="wrap">
+  <p class="kicker"><b>Terraform</b> is for infrastructure. <b>Docker</b> is for services. <b>Sigma</b> is for detection.</p>
+  <h1><code>.vio</code> is for agents.</h1>
+  <p class="sub" style="font-size:17px;margin-top:16px;color:var(--ink-2)"><b style="color:var(--ink);font-weight:600">VIO — Verifiable Intelligence Object.</b> The signed artifact format for AI agents.</p>
+  <p class="lead" style="margin-top:14px">The <code>.vio</code> artifact format is open, signed and framework-neutral. One YAML document carries what an agent knows, does and remembers — and the signatures that prove who authored it.</p>
+  <div class="btnrow">
+    <a class="btn" href="#/spec">Read the specification</a>
+    <a class="btn ghost" href="#/integrate">Open a .vio in your browser</a>
+  </div>
+  <div class="status">
+    <div><span class="k">Format version</span><span class="v">vio: 1</span></div>
+    <div><span class="k">Specification</span><span class="v">Accepted · rev 4 · 2026-09-04</span></div>
+    <div><span class="k">Artifact types</span><span class="v">5 (prompt · skill · memory · model · agent)</span></div>
+    <div><span class="k">Tooling required to read one</span><span class="v">None — portable YAML core only</span></div>
+    <div><span class="k">Signing</span><span class="v">Optional · Viorant Sign · RFC 8785</span></div>
+    <div><span class="k">Licence</span><span class="v">CC-BY-4.0 spec · Apache-2.0 tooling · patents royalty-free</span></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2 style="max-width:26ch">Other agent formats describe an agent. <code style="background:none;padding:0;color:var(--accent-ink);font-weight:600">.vio</code> packages, pins and signs one.</h2>
+  <p class="lead" style="margin-top:18px">A Dockerfile pins a filesystem. A Helm chart pins a topology. An agent-definition schema pins a description. None of them produces a portable artifact whose every part is digest-pinned and whose authored parts are signed — which is what you actually hand to a deployer.</p>
+  <div class="trip" style="margin-top:40px">
+    <div><div class="lbl">Previous layer</div><h3>Dockerfile · Helm · Terraform</h3><p>Built for processes, files and cloud resources. They describe the box, not the behavior inside it. An agent's prompt, skills, tools and memory are opaque payload.</p></div>
+    <div><div class="lbl">New surface</div><h3>Agent composition</h3><p>Prompts, skills, tools and connector scopes, memory, model descriptors, decode parameters — the artifacts that decide what an agent knows, does and remembers. This is where drift, tampering and privilege creep actually happen.</p></div>
+    <div><div class="lbl">The format</div><h3>.vio</h3><p>A single self-contained, signed YAML bundle. Every authored artifact is individually signed; every referenced one is digest-pinned; one bundle signature binds them all. Framework-neutral. Readable by any YAML parser. Forward-compatible by construction.</p></div>
+  </div>
+  <p style="margin-top:36px;max-width:72ch;color:var(--ink-2)">Before OCI in 2015, every runtime had its own image format. Before Terraform, every team had its own provisioning scripts. Agent definitions sit in the same position today: every framework ships its own YAML, none of it signed, none of it portable. <b><code>.vio</code> is the artifact layer that position is missing.</b></p>
+</div></section>
+
+<hr>
+<section><div class="wrap">
+  <h2>Three concerns stack. None reinvents the others.</h2>
+  <p class="lead" style="margin-top:14px">The format sits between a signing substrate it depends on and a deployer that consumes it. It defines packaging only — not cryptography, not scheduling.</p>
+  <div class="stack" style="margin-top:32px">
+    <div class="l">Sign</div><div class="r"><b>How an artifact, or a whole bundle, is signed, verified and trust-scored.</b> Signing ceremony, key registry, verification engine, enforcement gate. Provided by Viorant Sign. <b>Signing is optional</b> — an unsigned bundle is a valid bundle; when signatures are present, the format defines only how Sign's outputs are represented in the file.</div>
+    <div class="l hi">.vio</div><div class="r"><b>How signed artifacts are packaged together.</b> Manifest, artifact bodies or references, digests, per-artifact signatures and the bundle signature. This site.</div>
+    <div class="l">Deployer</div><div class="r"><b>Verifies the bundle via Sign, then deploys.</b> Resolves references on the target, routes each artifact by its declared <code>deploy</code> destination, binds runtime values after verification. Reference implementation: Helix.</div>
+  </div>
+</div></section>
+
+<hr>
+<section><div class="wrap">
+  <h2>Five artifact types. Two trust tiers.</h2>
+  <p class="lead" style="margin-top:14px">You sign what you author. You digest-pin what you reference or what is mutable. The rule decides, per type, what appears in the file.</p>
+  <div class="types" style="margin-top:32px">
+    <a href="#/spec#s2-1"><div class="n">prompt</div><div class="tier"><span class="tag ok">signed</span></div><p>Framework-neutral sections with a variable schema and default bindings. A signed template, never a finished string.</p></a>
+    <a href="#/spec#s1-6"><div class="n">skill</div><div class="tier"><span class="tag ok">signed</span></div><p>A file tree, declarative or executable, plus its <code>tools</code> declaration. Capability surface is inside the signature.</p></a>
+    <a href="#/spec#s1-4"><div class="n">agent</div><div class="tier"><span class="tag ok">signed</span></div><p>Composes siblings by local id. Carries the input contract, bindings, decode params and the two-facet output.</p></a>
+    <a href="#/spec#s1-8"><div class="n">memory</div><div class="tier"><span class="tag spec">integrity only</span></div><p>Inline <code>.memory.md</code> body with a <code>layer</code> of seed or runtime. Mutable user data: digested, not author-signed.</p></a>
+    <a href="#/spec#s1-7"><div class="n">model</div><div class="tier"><span class="tag spec">integrity only</span></div><p>A <code>model://</code> reference plus an inference descriptor. Never weights. Hosted models ride the connector rail instead.</p></a>
+  </div>
+</div></section>
+
+<hr>
+<section><div class="wrap">
+  <div class="split">
+    <div>
+      <h2>Capability is signed. Credentials are not.</h2>
+      <p style="margin-top:16px;color:var(--ink-2)">The signed content of a skill includes its tool declarations — connector and scopes. You cannot add a tool or widen a scope without breaking the signature. But OAuth tokens, secret values and bound variables never enter the file: they are injected at run, after verification, through <code>connection://</code> and <code>secret://</code> handles.</p>
+      <p style="color:var(--ink-2)">The consequence is a property no container format has: a <b>tamper-evident, auditable capability surface</b> that travels with the artifact, while permission-to-act-here is resolved per deployment.</p>
+      <p style="color:var(--ink-2)">The same reasoning makes templates the signed unit rather than rendered strings. Verification happens on the template; interpolation and framework assembly happen afterwards. One signed prompt serves every run, and every injected value is bound to a verified template.</p>
+      <a class="btn ghost" href="#/spec#s2-4" style="margin-top:8px">How signing is represented</a>
+    </div>
+    <div class="codewrap"><pre><code># skill artifact — inside the signature
+tools:
+  - { ref: http_get,   kind: viorant }
+  - { ref: serp_query, kind: mcp,
+      connector: serpapi, scopes: [search.read] }
+
+# manifest — surfaced so the deployer can gate auth
+requires:
+  - { connector: serpapi, scopes: [search.read], auth: oauth }
+
+# prompt variables — the schema is signed, the values are not
+variables:
+  - { name: client, type: string, required: true, source: input }
+  - { name: key,    type: string, required: true, source: secret }
+bindings:
+  client: input.client
+  key:    secret://viorant/rnd/serp_key   # resolved at run</code></pre></div>
+  </div>
+</div></section>
+
+<hr>
+<section><div class="wrap">
+  <h2>A complete bundle, in one document.</h2>
+  <p class="lead" style="margin-top:14px">A research agent bundling a signed prompt, one declarative and one executable skill, a memory reference and a self-hosted model reference. Open it in any YAML tool.</p>
+  <div class="codewrap" style="margin-top:28px"><button class="copybtn" data-copy="ex1">Copy</button><pre id="ex1"><code>vio: 1
+manifest:
+  id: agt_research
+  name: Research Analyst
+  version: 1.2.0
+  composition: agent
+  framework: crewai
+  org: viorant
+  team: rnd
+  signer: { certificate_id: cert_adi_001, algo_id: 0x02 }   # RSA-2048 + ECDSA-P256
+  created: 2026-06-14T10:00:00Z
+  artifacts:
+    - { id: agent,     type: agent,  deploy: runtime,  digest: sha256:9f2a…, sig: base64… }
+    - { id: sysprompt, type: prompt, deploy: registry, digest: sha256:0c41…, sig: base64… }
+    - { id: summarize, type: skill,  kind: declarative, deploy: registry, digest: sha256:1b7e…, sig: base64… }
+    - { id: websearch, type: skill,  kind: executable, runtime: python, deploy: runtime/standalone, digest: sha256:aa90…, sig: base64… }
+    - { id: mem,       type: memory, deploy: store,    ref: mem://viorant/rnd/research, digest: sha256:dd12… }
+    - { id: llama,     type: model,  deploy: runtime,  ref: model://viorant/llama3-8b, engine: vllm,
+        quantization: q4_k_m, context_length: 8192, served_as: llama3-8b, digest: sha256:7c33… }
+  requires:
+    - { ref: llama, digest: sha256:7c33… }
+    - { connector: serpapi, scopes: [search.read], auth: oauth }
+artifacts:
+  - id: agent
+    type: agent
+    content:
+      role: Senior Research Analyst
+      goal: Produce rigorous, cited research briefs
+      framework: crewai
+      model:   { ref: llama, params: { temperature: 0.2, max_tokens: 1500 } }
+      prompts: [ { ref: sysprompt } ]
+      skills:  [ { ref: summarize }, { ref: websearch, deploy: standalone } ]
+      memory:  { ref: mem }
+      inputs:
+        - { name: client, type: string, required: true }
+        - { name: topic,  type: string, required: true }
+      output:
+        expected: |
+          5-bullet executive summary with inline citations.
+        schema:
+          type: object
+          properties:
+            summary:   { type: array, items: { type: string } }
+            citations: { type: array, items: { type: string } }
+          required: [summary, citations]
+  - id: sysprompt
+    type: prompt
+    mode: chat
+    content:
+      system: |
+        You are a meticulous research analyst for {{client}}. Cite every claim.
+      user: |
+        Research {{topic}} and produce a brief.
+    variables:
+      - { name: client, type: string, required: true, source: input }
+      - { name: topic,  type: string, required: true, source: input }
+    bindings:
+      client: input.client
+      topic:  input.topic
+  - id: summarize
+    type: skill
+    content: |
+      # Summarize
+      When given documents, produce a 5-bullet executive summary…
+  - id: websearch
+    type: skill
+    tools:
+      - { ref: http_get,   kind: viorant }
+      - { ref: serp_query, kind: mcp, connector: serpapi, scopes: [search.read] }
+    content: |
+      def run(query: str) -> list[dict]:
+          ...
+  # mem and llama have no body — they are refs resolved on the target at deploy</code></pre></div>
+  <div class="grid g3" style="margin-top:32px">
+    <div><h3>Self-describing</h3><p class="muted" style="margin-top:8px;font-size:14.5px">The agent references siblings by local id. No external lookup is needed to understand the composition; the deployer wires them at deploy.</p></div>
+    <div><h3>Routing is declared, not inferred</h3><p class="muted" style="margin-top:8px;font-size:14.5px">Each artifact carries its own <code>deploy</code> destination — runtime, standalone sidecar, registry or store. A deployer reads it; it never guesses.</p></div>
+    <div><h3>Forward-compatible</h3><p class="muted" style="margin-top:8px;font-size:14.5px">Unknown <code>type</code>, <code>framework</code>, <code>deploy</code> or <code>kind</code> values are reserved. A verifier that does not understand one rejects cleanly rather than mis-deploying.</p></div>
+  </div>
+</div></section>
+
+<hr>
+<section><div class="wrap">
+  <div class="split">
+    <div>
+      <h2>The standard is one thing. What is built is another.</h2>
+      <p style="margin-top:16px;color:var(--ink-2)">The specification is written at its target altitude: all five artifact types, multiple frameworks, org and team scope. The reference implementation exercises a deliberate subset of it. The line between the two is published, dated and maintained — a format earns trust by saying what it does not yet do.</p>
+      <a class="btn ghost" href="#/spec#s3" style="margin-top:8px">Implemented subset</a>
+    </div>
+    <div class="ledger">
+      <div><span>Manifest, artifact index, embedded prompt / skill / agent bodies</span><span class="tag ok">shipped</span></div>
+      <div><span>Templated artifacts — sections, variables, bindings, two-facet output</span><span class="tag ok">shipped</span></div>
+      <div><span>Memory bodies with <code>layer</code> (seed / runtime)</span><span class="tag ok">shipped</span></div>
+      <div><span>Models rail and connector rail resolved at run</span><span class="tag ok">shipped</span></div>
+      <div><span>CrewAI adapter</span><span class="tag ok">shipped</span></div>
+      <div><span>Per-artifact <code>sig</code> and the <code>vio_bundle</code> signature</span><span class="tag spec">specified</span></div>
+      <div><span>Off-machine deploy — gates and destinations</span><span class="tag spec">specified</span></div>
+      <div><span>LangChain, AutoGen, ACP adapters</span><span class="tag plan">planned</span></div>
+      <div><span>Multi-agent <code>composition: bundle</code></span><span class="tag plan">open</span></div>
+    </div>
+  </div>
+</div></section>
+
+<hr>
+<section><div class="wrap">
+  <h2>Read a bundle with the parser you already have.</h2>
+  <p class="lead" style="margin-top:14px">A <code>.vio</code> uses only the portable YAML core: block scalars for bodies, base64 for signatures, plain maps and sequences. No anchors, no custom tags, no merge keys. Any parser opens it; any formatter lints it.</p>
+  <div class="grid g2" style="margin-top:28px;align-items:start">
+    <div class="term">
+<span class="c"># python</span>
+<span class="p">import</span> yaml
+b = yaml.safe_load(open(<span class="ok">"agt_research.vio"</span>))
+<span class="p">print</span>(b[<span class="ok">"vio"</span>], b[<span class="ok">"manifest"</span>][<span class="ok">"id"</span>])
+<span class="p">for</span> a <span class="p">in</span> b[<span class="ok">"manifest"</span>][<span class="ok">"artifacts"</span>]:
+    <span class="p">print</span>(a[<span class="ok">"id"</span>], a[<span class="ok">"type"</span>], a[<span class="ok">"deploy"</span>], <span class="ok">"sig"</span> <span class="p">in</span> a)
+
+<span class="c"># → 1 agt_research</span>
+<span class="c"># → agent agent runtime True</span>
+<span class="c"># → mem memory store False</span></div>
+    <div>
+      <p style="color:var(--ink-2)">Verification runs over the canonical form, not the on-disk bytes, so cosmetic reformatting — key order, quoting, indentation — is signature-safe. The one exception is a formatter that rewrites a block scalar: that changes the body string, the digest and the signature, which is tamper detection working as designed.</p>
+      <p style="color:var(--ink-2)">A dedicated <code>.vio</code> parser — typed access to the manifest, index and bodies, with canonicalization built in — is coming; it is a convenience, never a requirement.</p>
+      <div class="btnrow" style="margin-top:8px">
+        <a class="btn" href="#/integrate">Integration paths</a>
+        <a class="btn ghost" href="#/reference">Field reference</a>
+      </div>
+    </div>
+  </div>
+</div></section>
+</div>
+<!-- ===================== SPEC ===================== -->
+<div class="page" id="page-spec"><div class="wrap doc">
+<aside class="toc">
+  <div class="h">Specification</div>
+  <ul>
+    <li><a href="#/spec#s0">What a .vio is</a></li>
+    <li><a href="#/spec#s1">1. Physical format</a></li>
+    <li><a class="sub" href="#/spec#s1-1">1.1 Embed vs reference</a></li>
+    <li><a class="sub" href="#/spec#s1-2">1.2 Manifest fields</a></li>
+    <li><a class="sub" href="#/spec#s1-3">1.3 Artifact index entry</a></li>
+    <li><a class="sub" href="#/spec#s1-4">1.4 Worked example</a></li>
+    <li><a class="sub" href="#/spec#s1-5">1.5 Templated artifacts</a></li>
+    <li><a class="sub" href="#/spec#s1-6">1.6 Skills and tools</a></li>
+    <li><a class="sub" href="#/spec#s1-7">1.7 Models and inference</a></li>
+    <li><a class="sub" href="#/spec#s1-8">1.8 Memory and layer</a></li>
+    <li><a href="#/spec#s2">2. Signing representation</a></li>
+    <li><a class="sub" href="#/spec#s2-1">2.1 Two-tier trust</a></li>
+    <li><a class="sub" href="#/spec#s2-2">2.2 Two signing domains</a></li>
+    <li><a class="sub" href="#/spec#s2-3">2.3 Digest-only tamper evidence</a></li>
+    <li><a class="sub" href="#/spec#s2-4">2.4 Templated artifacts</a></li>
+    <li><a href="#/spec#s3">3. Implemented subset</a></li>
+    <li><a href="#/spec#s4">4. Scope notes</a></li>
+    <li><a href="#/spec#s5">5. Open questions</a></li>
+  </ul>
+</aside>
+<article class="body">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px"><span class="tag ok">Accepted</span><span class="tag">Format version 1</span><span class="tag">Revision 4 · 2026-09-04</span><span class="tag">Canonical: /spec</span><span class="tag ok">Verifiable Intelligence Object</span><span class="tag">Patent pending</span></div>
+  <h1 style="font-size:clamp(32px,4vw,46px)">The <code style="background:none;padding:0;color:var(--accent-ink);font-weight:500">.vio</code> Artifact Specification</h1>
+  <p class="small muted" style="margin-top:14px">The VIO Project · Authors: Vivien Roggero, Adi Vora — Viorant Inc.</p>
+  <p class="lead" style="margin-top:12px">The portable, signed deployment artifact for AI agents. A <code>.vio</code> is what gets handed from "the engineer composed this agent" to "this agent is running somewhere."</p>
+  <div class="hist" style="margin-top:22px"><b>History.</b> An earlier draft defined <code>.vio</code> as an OCI image carrying an <code>org.viorant.manifest.v1</code> annotation. That model is retired. A <code>.vio</code> is a single self-contained, signed YAML bundle; OCI images are relocated to the deployer's pre-baked base images, which are not the <code>.vio</code> itself. The "pull and run any <code>.vio</code> as a container" property no longer holds. See <a href="#/governance#errata">Errata</a>.</div>
+
+  <h2 id="s0">What a <code>.vio</code> is<a class="anchor" href="#/spec#s0">#</a></h2>
+  <p>A <code>.vio</code> is a <b>single self-contained, signed bundle</b> of AI-infrastructure artifacts. It is the unit a conforming deployer consumes. One file carries everything needed to verify provenance and deploy: a manifest, the artifact bodies (or references to them), and the signatures that bind them.</p>
+  <p>Three concerns stack — none reinvents the others:</p>
+  <pre><code>Sign      = how an artifact (or a whole bundle) is signed, verified, trust-scored   → dependency
+.vio      = how signed artifacts are packaged together                              → this document
+Deployer  = verifies the .vio via Sign, then deploys                                → Deployer specification</code></pre>
+  <p><b>Signing is optional; its representation is not.</b> An unsigned bundle is a valid bundle and is what a local compile-and-run produces. When a bundle is signed, the signing ceremony, key registry, verification engine, trust scoring and enforcement gate are defined by <b>Viorant Sign</b> (<a href="https://sign.viorant.ai" rel="noopener">sign.viorant.ai</a>, coming soon). This document only defines how Sign's outputs are represented inside a <code>.vio</code>; it does not re-specify cryptography. Sign treats <code>vio_bundle</code> as a first-class signable asset type with a defined <code>canonicalize_vio_bundle()</code> (RFC 8785 canonicalization); the format below is built to match.</p>
+  <div class="note"><p>This specification is written at its <b>target altitude</b> — all five artifact types, multiple frameworks, org and team scope — not narrowed to today's implemented subset. <a href="#/spec#s3">Section 3</a> states exactly which parts the current reference implementation exercises.</p></div>
+
+  <h2 id="s1">1. Physical format<a class="anchor" href="#/spec#s1">#</a></h2>
+  <ul>
+    <li><b>Encoding.</b> A single UTF-8 <b>YAML</b> document. Chosen over JSON because every artifact body is multi-line text — prompts, skills, memory, agent definitions — and YAML block scalars keep them verbatim and diff-able instead of base64 or escaped one-liners. Chosen over an archive because <code>.vio</code> is a first-class format, not a renamed container.</li>
+    <li><b>Top-level keys.</b> <code>vio</code> (format-version integer), <code>manifest</code> (authoritative metadata, signed as a unit), <code>artifacts</code> (the bodies).</li>
+    <li><b>Plain-YAML guarantee.</b> A <code>.vio</code> uses only the portable YAML core — UTF-8, block scalars for bodies, base64 (ASCII) for signatures, plain scalars, maps and sequences. <b>No anchors or aliases, no custom <code>!tags</code>, no merge keys (<code>&lt;&lt;</code>), no binary framing.</b> Any YAML parser or formatter can open and lint a <code>.vio</code> with no format-specific tooling.</li>
+    <li><b>Formatting versus the signature.</b> Verification runs over the <b>canonical</b> form (<code>canonicalize_vio_bundle</code>, RFC 8785), not the on-disk bytes, so cosmetic reformatting — key order, flow versus block style, quoting, indentation — is <b>signature-safe</b>. The one exception: a formatter that rewrites a <b>block scalar</b> (<code>|</code> to <code>|-</code>, trailing newline, internal whitespace) changes that artifact's body string, therefore its <code>digest</code>, therefore its <code>sig</code>. That is tamper detection working as designed. Read and lint with any tool freely; only an authoring or save path must preserve block scalars exactly (use a canonical writer) or re-sign.</li>
+  </ul>
+
+  <h3 id="s1-1">1.1 The embed-versus-reference rule<a class="anchor" href="#/spec#s1-1">#</a></h3>
+  <p>A single text document cannot hold model weights or multi-file code. So:</p>
+  <div class="tablewrap"><table><thead><tr><th>Case</th><th>Representation</th></tr></thead><tbody>
+    <tr><td>Text, small — prompt, declarative skill, single-file Python or JS skill, agent definition, memory body</td><td><b>Embedded inline</b> as a YAML block scalar (<code>content: |</code>)</td></tr>
+    <tr><td>Heavy or non-text — <b>models, always</b>; multi-file or dependency-bearing executable skills</td><td><b>Referenced</b> by <code>ref</code> and pinned by <code>digest</code> (git ref, OCI image, <code>model://…</code>)</td></tr>
+  </tbody></table></div>
+  <p>The deployer resolves a <code>ref</code> on the target at deploy time; the manifest <code>digest</code> guarantees the resolved bytes are the ones that were signed for.</p>
+
+  <h3 id="s1-2">1.2 Manifest field reference<a class="anchor" href="#/spec#s1-2">#</a></h3>
+  <div class="tablewrap"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody>
+    <tr><td><code>id</code>, <code>name</code>, <code>version</code></td><td>Package identity (semver)</td></tr>
+    <tr><td><code>composition</code></td><td><code>agent</code> | <code>prompt</code> | <code>skill</code> | <code>memory</code> | <code>model</code> | <code>bundle</code></td></tr>
+    <tr><td><code>framework</code></td><td>For agents: <code>crewai</code> | <code>langchain</code> | <code>autogen</code> | … (null otherwise)</td></tr>
+    <tr><td><code>org</code>, <code>team</code></td><td>Scope — drives trust, RBAC and registry namespace</td></tr>
+    <tr><td><code>signer</code></td><td><code>{ certificate_id, algo_id }</code> — resolves in Sign's <code>public_keys</code> registry</td></tr>
+    <tr><td><code>created</code></td><td>ISO-8601 UTC</td></tr>
+    <tr><td><code>artifacts[]</code></td><td>Authoritative index — each: <code>id, type, kind?, runtime?, deploy, digest, sig?, ref?</code></td></tr>
+    <tr><td><code>requires[]</code></td><td>Cross-artifact dependencies (agent → model <code>{id, digest}</code>, connector dependencies)</td></tr>
+  </tbody></table></div>
+
+  <h3 id="s1-3">1.3 Artifact index entry<a class="anchor" href="#/spec#s1-3">#</a></h3>
+  <p>Each row in <code>manifest.artifacts[]</code> is the authoritative descriptor for one artifact:</p>
+  <div class="tablewrap"><table><thead><tr><th>Key</th><th>Meaning</th></tr></thead><tbody>
+    <tr><td><code>id</code></td><td>Bundle-local id, referenced by siblings — e.g. an agent's <code>prompts: [{ref: sysprompt}]</code></td></tr>
+    <tr><td><code>type</code></td><td><code>prompt</code> | <code>skill</code> | <code>memory</code> | <code>model</code> | <code>agent</code></td></tr>
+    <tr><td><code>kind</code></td><td>For <code>skill</code>: <code>declarative</code> | <code>executable</code> (extensible per type)</td></tr>
+    <tr><td><code>runtime</code></td><td>For executable skill: <code>python</code> | <code>js</code></td></tr>
+    <tr><td><code>deploy</code></td><td>Destination and mode: <code>runtime</code> | <code>runtime/standalone</code> | <code>registry</code> | <code>store</code></td></tr>
+    <tr><td><code>digest</code></td><td><code>sha256:…</code> of the content bytes — binds the artifact into the signed manifest</td></tr>
+    <tr><td><code>sig</code></td><td>Present only on <b>authored</b> artifacts (<a href="#/spec#s2">§2</a>) — absent for digest-only references</td></tr>
+    <tr><td><code>ref</code></td><td>Present only for <b>referenced</b> artifacts (model, external skill)</td></tr>
+  </tbody></table></div>
+
+  <h3 id="s1-4">1.4 Worked example<a class="anchor" href="#/spec#s1-4">#</a></h3>
+  <p>A CrewAI research agent bundling a signed prompt, one declarative and one executable skill, a memory reference and a self-hosted model reference. The full document is on the <a href="#/">front page</a>; the shape is reproduced in the <a href="#/integrate#reader">reader</a>.</p>
+  <p>Three properties of this design:</p>
+  <ol>
+    <li><b>Self-describing.</b> The agent body references siblings by local <code>id</code>; the deployer wires them at deploy. No external lookup is needed to understand composition.</li>
+    <li><b>Per-artifact <code>deploy</code>.</b> Routing is declared, not inferred — the deployer reads <code>deploy</code> and sends each artifact to Runtime, Registry or Store.</li>
+    <li><b>Forward-compatible.</b> Unknown <code>type</code> / <code>framework</code> / <code>deploy</code> / <code>kind</code> values are <b>reserved</b> — a verifier that does not understand a value rejects cleanly rather than mis-deploying. The format grows without breaking older deployers.</li>
+  </ol>
+
+  <h3 id="s1-5">1.5 Templated artifacts — sections, variables, binding<a class="anchor" href="#/spec#s1-5">#</a></h3>
+  <p>An authored artifact is a <b>template, not a finished string</b>. A prompt's <code>content</code> is a map of framework-neutral <b>sections</b>; the <code>.vio</code> stays framework-neutral and a framework adapter assembles the native form at instantiate — the same principle as <code>{{var}}</code>.</p>
+  <h4>Prompt artifact shape</h4>
+  <div class="tablewrap"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody>
+    <tr><td><code>mode</code></td><td><code>chat</code> | <code>single_shot</code> — tells the adapter whether to build a message array or one completion</td></tr>
+    <tr><td><code>content.system</code></td><td>System prompt (template with <code>{{vars}}</code>)</td></tr>
+    <tr><td><code>content.user</code></td><td>User prompt (template with <code>{{vars}}</code>)</td></tr>
+    <tr><td><code>variables[]</code></td><td>The dynamic-slot schema (below); spans all sections</td></tr>
+    <tr><td><code>bindings</code></td><td>Artifact-level defaults — the prompt is <b>self-runnable</b> from a registry</td></tr>
+  </tbody></table></div>
+  <div class="note"><p><b>Output is an agent field, two-faceted — not a prompt field.</b> A prompt is reusable across agents with different expected outputs, so the output contract lives on the agent. <code>output.expected</code> is prose; it shapes the prompt, so the adapter folds it into assembly like a section. <code>output.schema</code> is an optional typed (JSON-schema) contract the runtime uses to validate or coerce the result and to wire <code>source: task</code> between agents in a crew.</p></div>
+  <h4>Variable schema</h4>
+  <pre><code>variables:
+  - { name: client, type: string, required: true,  source: input }
+  - { name: today,  type: date,   required: false, source: env,    default: "now()" }
+  - { name: tier,   type: enum,   values: [fast, deep], default: deep, source: static }</code></pre>
+  <p><code>source</code> ∈ <code>input | env | task | connector | secret | static</code>:</p>
+  <ul>
+    <li><code>input</code> — supplied by the caller at each run (kept dynamic)</li>
+    <li><code>env</code> / <code>task</code> / <code>connector</code> — resolved by the system: deploy environment, upstream task output, tool result</li>
+    <li><code>secret</code> — a <code>secret://org/team/key</code> <b>reference</b>, resolved at run from a secret store; the value never enters the <code>.vio</code></li>
+    <li><code>static</code> — baked at compose time (effectively fixed)</li>
+  </ul>
+  <p><b>Binding</b> — the explicit "what stays dynamic" — maps each variable to its source. Bindings sit at the <b>artifact level</b> (so a lone prompt runs on its own) and an <b>agent may override</b> them when it composes the prompt. The override is recorded in the <i>agent's</i> signed content, leaving the prompt's signature intact. The agent aggregates unbound <code>input</code> variables into its <code>inputs</code> contract; a run that omits a required input fails validation before execution.</p>
+  <p><b>Why templates, not finished strings.</b> Values bind at runtime, outside the signature — so one signed template serves every run without re-signing, and injected values are still bound to a verified template (<a href="#/spec#s2-4">§2.4</a>).</p>
+
+  <h3 id="s1-6">1.6 Skills and tools<a class="anchor" href="#/spec#s1-6">#</a></h3>
+  <p><b>A skill is a file tree, not one file.</b> Skills are directories — <code>SKILL.md</code> plus <code>scripts/</code>, <code>references/</code> and assets. The tree is represented as a <code>files</code> map keyed by relative path, plus an <code>entry</code> pointer; the manifest index entry carries <code>entry</code> and the one <code>digest</code> over the canonicalized tree:</p>
+  <pre><code># manifest index entry
+- { id: research, type: skill, kind: executable, runtime: python,
+    entry: scripts/run.py, deploy: runtime/standalone, digest: sha256:…, sig: base64… }
+
+# artifacts body
+- id: research
+  type: skill
+  entry: scripts/run.py
+  files:
+    SKILL.md:                  | …     # how and when to use
+    scripts/run.py:            | …     # entrypoint
+    scripts/helpers.py:        | …
+    references/methodology.md: | …
+  tools: [ … ]</code></pre>
+  <ul>
+    <li><b>The tree is the signed unit.</b> <code>digest</code> is <code>sha256</code> over the <b>canonicalized file map</b> (sorted paths, per-file NFC) — exactly Sign's <code>canonicalize_skill</code>. Renaming a path or editing any file breaks the signature; paths are part of the signed structure, not just contents.</li>
+    <li><b>Embed-versus-reference still applies.</b> Small text tree → inline <code>files</code>; heavy or binary tree (vendored dependencies, large assets) → <code>ref</code> plus digest (packed archive or OCI image), like models.</li>
+    <li><b>Single-file skills</b> keep the <code>content: |</code> shorthand (a one-file tree); <code>files</code> is the general form. The same <code>entry</code>/<code>files</code> model applies to declarative skills (just <code>SKILL.md</code>).</li>
+  </ul>
+  <p>A skill also declares the <b>tools</b> it uses. Tools come in two kinds:</p>
+  <div class="tablewrap"><table><thead><tr><th><code>kind</code></th><th>Source</th><th>Auth</th></tr></thead><tbody>
+    <tr><td><code>viorant</code></td><td>Native capability provided by the runtime or base image</td><td>None, or platform-internal</td></tr>
+    <tr><td><code>mcp</code></td><td>A tool exposed by an <b>MCP connector</b> (Gmail, Slack, SerpAPI, …)</td><td><b>OAuth</b>, resolved per deployment on the control plane</td></tr>
+  </tbody></table></div>
+  <p><b>Tool declaration</b> on the skill artifact pins the exact tool and, for MCP, the connector and scopes — least privilege:</p>
+  <pre><code>tools:
+  - { ref: http_get,   kind: viorant }
+  - { ref: serp_query, kind: mcp, connector: serpapi, scopes: [search.read] }</code></pre>
+  <p><b>Connectors are control-plane references, never packaged in the <code>.vio</code>.</b> A connector is org- or team-specific, OAuth-bound infrastructure — not a portable, signable artifact. The bundle surfaces its connector dependencies at the manifest level so a deployer can gate and resolve auth without parsing every skill body:</p>
+  <pre><code>manifest:
+  requires:
+    - { connector: serpapi, scopes: [search.read], auth: oauth }</code></pre>
+  <p><b>Capability is signed; credentials are not.</b> The skill's signed content includes its <code>tools</code> declaration (connector and scopes), so a signed skill has a <b>tamper-proof, auditable capability surface</b> — you cannot add a tool or widen a scope without breaking the signature. OAuth tokens <b>never enter the <code>.vio</code></b>: they live in the control-plane connector store and are injected to the runtime at run via a <code>connection://org/team/connector</code> handle (the same shape as the <code>secret://</code> variable source; <code>source: connector</code> covers tool-result values).</p>
+  <div class="note"><p><b>Why OAuth "again".</b> Tokens are per-org, short-lived and non-portable. Deploying a signed skill to a new org, team or cloud means that deployment's control plane must hold a valid connection for each required connector — so OAuth is (re-)done there if absent. Capability travels in the file; permission-to-act-here is resolved per deployment.</p></div>
+
+  <h3 id="s1-7">1.7 Models and inference<a class="anchor" href="#/spec#s1-7">#</a></h3>
+  <p>The model type covers <b>local, self-hosted</b> models only. A model artifact is a <b>reference plus an inference descriptor — never weights</b>. The <code>.vio</code> carries a <code>model://…</code> ref (digest-pinned) plus the descriptor a deployer needs to stand it up, on the <b>manifest index entry</b> so it is covered directly by the bundle signature; the model itself stays body-less.</p>
+  <div class="tablewrap"><table><thead><tr><th>Field (manifest entry)</th><th>Meaning</th></tr></thead><tbody>
+    <tr><td><code>ref</code></td><td><code>model://org/name</code> — the weights, resolved on the target at deploy</td></tr>
+    <tr><td><code>digest</code></td><td><code>sha256</code> of the resolved weights (integrity, no authorship)</td></tr>
+    <tr><td><code>engine</code></td><td>Inference runtime: <code>vllm</code> | <code>llama.cpp</code> | <code>ollama</code> | … — selects the inference base image flavor</td></tr>
+    <tr><td><code>quantization</code></td><td>e.g. <code>q4_k_m</code> (optional)</td></tr>
+    <tr><td><code>context_length</code></td><td>Served context window (optional)</td></tr>
+    <tr><td><code>served_as</code></td><td>The name the agent or framework calls (optional; defaults to <code>name</code>)</td></tr>
+  </tbody></table></div>
+  <pre><code>- { id: llama, type: model, deploy: runtime, ref: "model://viorant/llama3-8b",
+    engine: vllm, quantization: q4_k_m, context_length: 8192, served_as: llama3-8b,
+    digest: "sha256:7c33…" }   # no sig — integrity-only tier</code></pre>
+  <ul>
+    <li><b>Integrity-only, descriptor included.</b> A model carries no <code>sig</code> — you cannot author-sign someone's weights — but the descriptor sits in the signed manifest and the <code>digest</code> covers the resolved weights. Both <i>how it is stood up</i> and <i>what bytes run</i> are tamper-evident (<a href="#/spec#s2-3">§2.3</a>).</li>
+    <li><b>Hosted models are connectors, not model artifacts.</b> A hosted LLM is <b>not</b> a <code>type: model</code>. <code>type: model</code> means self-hosted weights you <i>deploy</i>; a hosted model is an API credential you <i>resolve</i>, so it rides the <b>connector rail</b> — a control-plane connection, key injected at run via <code>connection://</code>, exactly like SerpAPI. The two trust and deploy profiles (deploy a container versus resolve a credential) stay cleanly separated.</li>
+  </ul>
+  <p><b>Decode parameters are agent-level — not model- or prompt-level.</b> <i>How to stand the model up</i> is the model's concern; <i>how to sample it</i> is how the <b>agent</b> uses it. Decode params (<code>temperature</code>, <code>max_tokens</code>, <code>top_p</code>, <code>stop</code>, …) layer like bindings:</p>
+  <pre><code># agent body
+model:
+  ref: llama
+  params: { temperature: 0.2, max_tokens: 1500 }   # agent override</code></pre>
+  <p>Precedence is <b>run &gt; agent &gt; model-default</b>: a model may publish recommended <code>params</code> on its manifest entry, the agent overrides, and a run may override per invocation. Params are <b>config, not secrets</b> — they live in the file as part of the agent's signed content. A prompt stays sampling-neutral, so params are never prompt-level.</p>
+
+  <h3 id="s1-8">1.8 Memory bodies and the <code>layer</code> field<a class="anchor" href="#/spec#s1-8">#</a></h3>
+  <p>A memory artifact ships its <code>.memory.md</code> text inline as a body. A workspace holds <b>two structurally identical kinds of memory</b> — a <b>curated seed</b> the user authored, and an agent's <b>local runtime scratch</b> written by a <code>remember</code> tool — so the body declares which it is:</p>
+  <div class="tablewrap"><table><thead><tr><th>Field (artifact body)</th><th>Meaning</th></tr></thead><tbody>
+    <tr><td><code>layer</code></td><td><code>seed</code> | <code>runtime</code> — which memory layer this body is. <b>Optional; defaults to <code>seed</code>.</b></td></tr>
+  </tbody></table></div>
+  <pre><code>artifacts:
+  - id: 01M1NC0WFNSS0WWN1690VY2FR8
+    type: memory
+    layer: seed                       # curated — ships with its body text intact
+    content: |
+      ---
+      meta: {id: 01M1NC0WFNSS0WWN1690VY2FR8, schemaVersion: "1"}
+      name: Memory 1
+      description: Persistent memory for agent runs.
+      ---
+      Viorant is an AI infrastructure company…
+  - id: 01KYRN79YYQ841RD37EKSMGKK9
+    type: memory
+    layer: runtime                    # agent-local scratch — frontmatter only, body empty
+    content: |
+      ---
+      meta: {id: 01KYRN79YYQ841RD37EKSMGKK9, schemaVersion: "1"}
+      name: confluence-updates
+      description: Persistent memory for agent runs.
+      ---</code></pre>
+  <ul>
+    <li><b>Omitted means <code>seed</code>.</b> A pre-<code>layer</code> bundle parses unchanged and is read as curated content — which is what those bundles actually carried. This is the safe default direction.</li>
+    <li><b>It lives on the body, not the manifest index entry.</b> The body is where the deployer and runner read from; widening the index too would double the compatibility surface for no consumer.</li>
+    <li><b>It is not part of the digest subject.</b> A memory artifact digests <code>{ content }</code> only, so adding or changing <code>layer</code> leaves every existing <code>manifest.artifacts[].digest</code> valid — no forced re-export, no <code>digest_mismatch</code> on already-deployed bundles.</li>
+    <li><b>Materialization is layer-driven.</b> A deployer writes <code>seed</code> → <code>{id}.memory.md</code> at the memory root and <code>runtime</code> → <code>.runtime/{id}.memory.md</code>, so the instance classifies each memory correctly on its first run rather than only after its first write.</li>
+    <li><b>A <code>runtime</code> body ships frontmatter-only, but it still ships.</b> The producer emits the parsed frontmatter with an empty body: the agent's accumulated local history stays local, while the ULID binding survives. Omitting the artifact entirely is not an equivalent optimization — an absent write target fails the first run with a dangling reference.</li>
+    <li><b>A redeploy never clobbers accumulated runtime state.</b> The deploy target checks for an existing runtime object <i>before</i> writing and skips it, emitting a preservation notice instead.</li>
+    <li><b>Compatibility runs consumers-first.</b> The memory body schema is strict and the runtime parses the whole bundle at boot, so a bundle carrying <code>layer</code> is rejected by a runtime built against a pre-<code>layer</code> schema. Producers must ship <i>after</i> consumers — the reverse of the usual order.</li>
+  </ul>
+  <div class="note"><p><b>Why the layer is declared rather than derived.</b> An earlier design keyed this off the agent's <code>memory.read</code> / <code>memory.write</code> binding. That is the wrong axis: <b>layer</b> is a property of the <i>asset</i> (curated versus scratch), while <b>binding</b> is a property of the agent's <i>reference</i> to it — and a seed-layer memory can legitimately be write-bound, in which case the runtime promotes a copy into the runtime layer on first write rather than mutating the seed. <code>.vio</code> is a published portable format; an artifact should say what it is, rather than leaving the semantic implicit in a cross-reference every third-party consumer has to know to perform.</p></div>
+
+  <h2 id="s2">2. How signing is represented in a <code>.vio</code><a class="anchor" href="#/spec#s2">#</a></h2>
+  <p>The full cryptography belongs to Sign; this section defines only what appears in the file.</p>
+  <h3 id="s2-1">2.1 Two-tier trust<a class="anchor" href="#/spec#s2-1">#</a></h3>
+  <div class="note"><p>You <b>sign what you author</b>; you <b>digest-pin what you reference or what is mutable</b>.</p></div>
+  <div class="tablewrap"><table><thead><tr><th>Artifact</th><th>Trust tier</th><th>In the file</th></tr></thead><tbody>
+    <tr><td><b>prompt</b></td><td><span class="tag ok">Signed</span></td><td><code>sig</code> present; is a Sign <code>prompt</code> asset</td></tr>
+    <tr><td><b>skill</b></td><td><span class="tag ok">Signed</span></td><td><code>sig</code> present; Sign <code>skill</code> asset (declarative <i>and</i> executable)</td></tr>
+    <tr><td><b>agent</b></td><td><span class="tag ok">Signed</span></td><td><code>sig</code> present; the bundle is a Sign <code>vio_bundle</code></td></tr>
+    <tr><td><b>memory</b></td><td><span class="tag spec">Integrity only</span></td><td><code>digest</code> only, no <code>sig</code> — mutable user data; carries an inline body plus its <code>layer</code></td></tr>
+    <tr><td><b>model</b></td><td><span class="tag spec">Integrity only</span></td><td><code>digest</code> and <code>ref</code> only, no <code>sig</code> — a reference to self-hosted weights you cannot author-sign</td></tr>
+  </tbody></table></div>
+  <h3 id="s2-2">2.2 Two signing domains<a class="anchor" href="#/spec#s2-2">#</a></h3>
+  <ul>
+    <li><b>Per-artifact (<code>sig</code>).</b> Each authored artifact is itself a Sign asset with its own signature, so it stays independently verifiable even when pulled out of this bundle — a signed prompt reused from a registry, for example. Algorithms per Sign <code>algo_id</code>: default <code>0x02</code> = RSA-2048 + ECDSA-P256; <code>0x04</code> = Ed25519; <code>0x03</code> = with Dilithium (post-quantum). The authoring tool runs the Sign ceremony when the artifact is authored.</li>
+    <li><b>Bundle (<code>vio_bundle</code> signature).</b> The whole <code>.vio</code> is signed as one Sign <code>vio_bundle</code> asset over the <b>canonical-YAML</b> form of the manifest (<code>canonicalize_vio_bundle()</code>, RFC 8785). Because <code>manifest.artifacts[]</code> lists <b>every</b> artifact's <code>digest</code>, this single signature transitively binds <b>all</b> content — including the digest-only memory and model.</li>
+  </ul>
+  <h3 id="s2-3">2.3 Why digest-only is still tamper-evident<a class="anchor" href="#/spec#s2-3">#</a></h3>
+  <p>A model cannot be author-signed, but its <code>digest</code> sits inside the manifest that <i>is</i> signed as a <code>vio_bundle</code>. Tampering with the model on the target changes its hash; the manifest digest no longer matches; bundle verification fails. Reference-only artifacts therefore get <b>integrity without authorship</b>: provenance is not claimed, but tampering is caught. The model's inference descriptor lives in the manifest index entry, so it is covered <b>directly</b> by the bundle signature; the weights <code>digest</code> additionally catches tampering with the resolved weights on the target.</p>
+  <h3 id="s2-4">2.4 What is signed for a templated artifact<a class="anchor" href="#/spec#s2-4">#</a></h3>
+  <p>The signed or digested content of a prompt or skill is the <b>whole authored structure</b>. For a prompt: <code>mode</code>, the <code>system</code>/<code>user</code> sections, the <code>variables</code> schema and default <code>bindings</code>. For a skill: its code or text <b>plus its <code>tools</code> declaration</b> (connector and scopes) — canonically serialized (RFC 8785), <b>never the bound values or OAuth tokens</b>. Consequences:</p>
+  <ul>
+    <li>Tampering with a section, adding a stray <code>{{slot}}</code>, changing a variable's <code>type</code>, redirecting a <code>binding</code> (e.g. to a different <code>secret://…</code>), <b>adding a tool or widening a connector scope</b> → <b>breaks the signature</b>.</li>
+    <li>Filling <code>{{client}} = "Acme"</code>, or injecting an OAuth token or tool result at runtime → does <b>not</b> touch the signature (values and credentials live outside the signed content).</li>
+  </ul>
+  <p>So <b>verification happens on the template; interpolation and framework assembly happen after verification</b>, at instantiate or run. This is exactly why a finished string would be wrong — it would force re-signing per run, or leave injected values bound to an unverified blob.</p>
+
+  <h2 id="s3">3. Implemented subset<a class="anchor" href="#/spec#s3">#</a></h2>
+  <p>The specification above is the <b>full target</b>. The current reference implementation exercises a deliberate <b>subset</b> of it. This section is the line between "the standard" and "what is built".</p>
+  <h4>Implemented — the local compile-and-run path</h4>
+  <ul>
+    <li>A <b>workspace</b> (a folder of authored assets) <b>compiles to a <code>.vio</code></b>: <i>tree-shake</i> (only assets reachable from the composed agents ship) → <i>inline-resolve</i> (resolve id-bound refs via the per-workspace discovery scan) → serialize to the YAML bundle above.</li>
+    <li><b>Run is compile-then-run, always, through <code>.vio</code>.</b> A local run compiles the workspace to an unsigned, in-memory <code>.vio</code> and hands it to the local runner. This removes dev/prod drift — what you run locally is the same artifact shape you later deploy.</li>
+    <li><b>CrewAI only</b> (<code>framework: crewai</code>); single-agent or within-crew composition.</li>
+    <li>Format features exercised: the manifest and artifact index; embedded prompt, skill and agent bodies; the templated-artifact model (sections, variables, bindings, two-facet output); id-based refs; memory bodies with <code>layer</code>; the models rail (self-hosted ref and descriptor) and the connector rail (hosted models and MCP tools resolved at run).</li>
+  </ul>
+  <h4>Specified, not yet built</h4>
+  <ul>
+    <li><b>Signing</b> — the <code>sig</code> / <code>vio_bundle</code> signature representation (<a href="#/spec#s2">§2</a>). The current compile produces an <b>unsigned</b> bundle; signing lands with the Sign substrate and the signed-deploy path.</li>
+    <li><b>Off-machine deploy</b> — the deploy gates and the three destinations. The current path is local compile-and-run; signed <code>.vio</code> plus remote deploy sit later in the release train.</li>
+    <li><b>Multi-framework</b> — LangChain, AutoGen and ACP adapters are future; the format is already neutral, only the CrewAI adapter is built.</li>
+  </ul>
+
+  <h2 id="s4">4. Scope notes<a class="anchor" href="#/spec#s4">#</a></h2>
+  <ul>
+    <li><b>Memory ships an inline body.</b> The format reserves <code>type: memory</code> and the <code>store</code> destination; a memory artifact carries its <code>.memory.md</code> text inline plus a <code>layer</code> declaring curated seed versus agent-local scratch (<a href="#/spec#s1-8">§1.8</a>).</li>
+    <li><b>Model = reference, never payload.</b> Weights are never embedded; a <code>.vio</code> carries a <code>model://…</code> ref, a digest and an inference descriptor on the manifest entry. Standing the model up is the deployer's job. Hosted models are not <code>type: model</code> — they ride the connector rail (<a href="#/spec#s1-7">§1.7</a>).</li>
+    <li><b>Reserved compositions.</b> <code>prompt</code>, <code>skill</code>, <code>memory</code>, <code>model</code> and <code>bundle</code> are valid compositions, but a standalone non-runnable artifact (a lone prompt, say) deploys to a <b>registry</b>, not a runtime.</li>
+  </ul>
+
+  <h2 id="s5">5. Open questions<a class="anchor" href="#/spec#s5">#</a></h2>
+  <ul>
+    <li>Canonical-YAML edge cases for <code>vio_bundle</code> signing (block-scalar trailing-newline rules) — inherit Sign's canonicalizer exactly; pin a round-trip test.</li>
+    <li>Whether <code>requires[]</code> should also pin a registry coordinate (not just <code>{ref, digest}</code>) so a bundle can require an artifact that lives only in a registry, not inline. Leaning yes, post-v1.</li>
+    <li><b>Multi-agent crews</b> (<code>composition: bundle</code>) — threading typed <code>source: task</code> results between agents; the run contract already covers it, the bundle composition surface is the open thread.</li>
+  </ul>
+  <p class="small muted" style="margin-top:48px">Proposals against any open question go through the process in <a href="#/governance">Governance</a>. Reserved values are listed in the <a href="#/reference">Reference</a>.</p>
+</article>
+</div></div>
+<!-- ===================== REFERENCE ===================== -->
+<div class="page" id="page-reference"><div class="wrap" style="padding-top:56px;padding-bottom:96px">
+  <h1 style="font-size:clamp(32px,4vw,46px)">Field reference</h1>
+  <p class="lead" style="margin-top:16px">Every key the <code>.vio</code> artifact format defines, where it lives, and the values it reserves. Filter by location or search by name.</p>
+  <div class="explorer" style="margin-top:32px">
+    <div class="search">
+      <input id="refq" type="search" placeholder="Search fields, values, or concepts — e.g. digest, secret, runtime/standalone" aria-label="Search the field reference">
+      <div class="chips" id="refchips">
+        <button class="chip on" data-f="all">All</button>
+        <button class="chip" data-f="top">Top level</button>
+        <button class="chip" data-f="manifest">Manifest</button>
+        <button class="chip" data-f="index">Artifact index</button>
+        <button class="chip" data-f="prompt">Prompt body</button>
+        <button class="chip" data-f="skill">Skill body</button>
+        <button class="chip" data-f="agent">Agent body</button>
+        <button class="chip" data-f="memory">Memory body</button>
+        <button class="chip" data-f="model">Model entry</button>
+        <button class="chip" data-f="uri">URI schemes</button>
+      </div>
+    </div>
+    <div class="rows" id="refrows"></div>
+    <p class="small muted" id="refcount"></p>
+  </div>
+  <hr style="margin:56px 0">
+  <h2>Reserved values</h2>
+  <p class="lead" style="margin-top:12px">A conforming reader treats any value outside these sets as reserved and rejects the bundle cleanly. New values are added by specification revision, never by a producer.</p>
+  <div class="grid g3" style="margin-top:28px">
+    <div><h3><code>manifest.framework</code></h3><p class="muted small" style="margin-top:8px">crewai · langchain · autogen · claude-sdk · vercel-ai · adk (open set; adapters listed in Ecosystem)</p></div>
+    <div><h3><code>manifest.composition</code></h3><p class="muted small" style="margin-top:8px">agent · prompt · skill · memory · model · bundle</p></div>
+    <div><h3><code>artifacts[].type</code></h3><p class="muted small" style="margin-top:8px">prompt · skill · memory · model · agent</p></div>
+    <div><h3><code>artifacts[].deploy</code></h3><p class="muted small" style="margin-top:8px">runtime · runtime/standalone · registry · store</p></div>
+    <div><h3><code>skill.kind</code> / <code>skill.runtime</code></h3><p class="muted small" style="margin-top:8px">declarative · executable / python · js</p></div>
+    <div><h3><code>variables[].source</code></h3><p class="muted small" style="margin-top:8px">input · env · task · connector · secret · static</p></div>
+    <div><h3><code>tools[].kind</code></h3><p class="muted small" style="margin-top:8px">viorant · mcp</p></div>
+    <div><h3><code>prompt.mode</code></h3><p class="muted small" style="margin-top:8px">chat · single_shot</p></div>
+    <div><h3><code>memory.layer</code></h3><p class="muted small" style="margin-top:8px">seed (default) · runtime</p></div>
+    <div><h3><code>signer.algo_id</code></h3><p class="muted small" style="margin-top:8px">0x02 RSA-2048 + ECDSA-P256 (default) · 0x04 Ed25519 · 0x03 with Dilithium</p></div>
+  </div>
+</div></div>
+
+<!-- ===================== INTEGRATE ===================== -->
+<div class="page" id="page-integrate"><div class="wrap" style="padding-top:56px;padding-bottom:96px">
+  <h1 style="font-size:clamp(32px,4vw,46px)">Integrate</h1>
+  <p class="lead" style="margin-top:16px">Three ways to work with the <code>.vio</code> artifact format, in increasing depth: read it, verify it, deploy it. The first needs nothing you do not already have.</p>
+
+  <div class="levels" style="margin-top:36px">
+    <div><div class="lv">Read</div><h3>Any YAML parser</h3><p class="small muted" style="margin-top:8px">Parse the document, walk <code>manifest.artifacts[]</code>, inspect types, destinations and the capability surface. No dependency on any Viorant library.</p>
+      <ul><li>Python: <code>yaml.safe_load</code></li><li>Node: <code>js-yaml</code></li><li>Go: <code>gopkg.in/yaml.v3</code></li><li>Rust: <code>serde_yaml</code></li><li>Dedicated <code>.vio</code> parser — <span class="tag plan">coming soon</span></li></ul></div>
+    <div><div class="lv">Verify</div><h3>Viorant Sign</h3><p class="small muted" style="margin-top:8px">Optional. Recompute each artifact's digest over its canonical form, check per-artifact <code>sig</code> against the signer's registered key, and verify the <code>vio_bundle</code> signature over the canonical manifest. Verification is provided by Viorant Sign.</p>
+      <ul><li><a href="https://sign.viorant.ai" rel="noopener">sign.viorant.ai</a> — coming soon</li><li>Canonicalization: RFC 8785</li><li>Skill trees: sorted paths, per-file NFC</li><li>Memory: digest of <code>{ content }</code> only</li></ul></div>
+    <div><div class="lv">Deploy</div><h3>Conforming deployer</h3><p class="small muted" style="margin-top:8px">Verify, then route each artifact by its declared <code>deploy</code>, resolve <code>ref</code>s and connector auth on the target, and bind runtime values after verification.</p>
+      <ul><li>Reference implementation: Helix</li><li>Gates: signature, reserved values, connector auth</li><li>Destinations: runtime, registry, store</li></ul></div>
+  </div>
+
+  <h2 style="margin-top:72px">Walk a bundle</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">The manifest index is the authoritative descriptor for every artifact, so most tooling never needs to open the bodies. The capability surface of the whole bundle is readable from <code>manifest.requires[]</code> and each skill's <code>tools</code>.</p>
+  <div class="grid g2" style="margin-top:22px;align-items:start">
+    <div class="codewrap"><pre><code># python — list the capability surface of a bundle
+import yaml
+
+b = yaml.safe_load(open("agent.vio"))
+assert b["vio"] == 1
+
+for req in b["manifest"].get("requires", []):
+    if "connector" in req:
+        print("connector", req["connector"], req["scopes"], req["auth"])
+
+for a in b["artifacts"]:
+    if a["type"] == "skill":
+        for t in a.get("tools", []):
+            print("tool", a["id"], t["ref"], t["kind"], t.get("scopes"))</code></pre></div>
+    <div class="codewrap"><pre><code>// node — separate signed from digest-only artifacts
+import { readFileSync } from "node:fs";
+import yaml from "js-yaml";
+
+const b = yaml.load(readFileSync("agent.vio", "utf8"));
+const index = b.manifest.artifacts;
+
+const signed   = index.filter(a => "sig" in a);
+const pinned   = index.filter(a => !("sig" in a));
+const referred = index.filter(a => "ref" in a);
+
+console.log({ signed: signed.map(a => a.id),
+              pinned: pinned.map(a => a.id),
+              referred: referred.map(a => a.ref) });</code></pre></div>
+  </div>
+
+  <h2 id="reader" style="margin-top:72px">Open a .vio in your browser</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">This reader runs entirely in the page with a stock YAML parser. It checks the plain-YAML guarantee, the top-level shape, the manifest fields, the artifact index, reserved values and trust-tier consistency. It does not verify signatures — that requires the signer's public key.</p>
+  <div class="play" style="margin-top:22px">
+    <div>
+      <div class="btnrow" style="margin-bottom:10px"><button class="btn ghost" id="loadex" type="button">Load the worked example</button><button class="btn ghost" id="loadbad" type="button">Load a tampered bundle</button><button class="btn" id="runcheck" type="button">Check</button></div>
+      <textarea id="vioin" spellcheck="false" aria-label="Paste a .vio document">vio: 1
+manifest:
+  id: hello
+  name: Hello
+  version: 0.1.0
+  composition: prompt
+  org: example
+  team: docs
+  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
+  created: 2026-09-16T00:00:00Z
+  artifacts:
+    - { id: greet, type: prompt, deploy: registry, digest: sha256:0000, sig: base64 }
+artifacts:
+  - id: greet
+    type: prompt
+    mode: single_shot
+    content:
+      system: |
+        You greet {{name}} warmly.
+    variables:
+      - { name: name, type: string, required: true, source: input }
+    bindings:
+      name: input.name
+</textarea>
+    </div>
+    <div class="report" id="report"><div class="verdict muted">Press Check to run the reader.</div></div>
+  </div>
+
+  <h2 style="margin-top:72px">Converting from other agent formats</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">Declarative agent specifications that describe composition — which prompt, which tools, which model — map onto <code>.vio</code> artifacts directly. The format is designed as a target for conversion rather than a competitor: an existing definition becomes a bundle, gains a digest for every part and a signature for every authored part, and keeps its framework binding in <code>manifest.framework</code>.</p>
+  <div class="eco" style="margin-top:22px">
+    <div><div class="who">Agent Format</div><div class="what">Composition-level fields map to agent, prompt and skill artifacts; tool references become <code>tools[]</code> declarations with <code>kind: mcp</code> where a connector is implied.</div><span class="tag plan">planned</span></div>
+    <div><div class="who">Open Agent Spec</div><div class="what">Same mapping; model references classify as self-hosted (<code>type: model</code>) or hosted (connector rail) by whether weights are deployed.</div><span class="tag plan">planned</span></div>
+    <div><div class="who">Oracle Agent Spec</div><div class="what">Same mapping; typed outputs map to <code>output.schema</code>, prose expectations to <code>output.expected</code>.</div><span class="tag plan">planned</span></div>
+    <div><div class="who">Framework-native YAML (CrewAI, LangChain, AutoGen)</div><div class="what">Handled by framework adapters at instantiate rather than by conversion. The adapter assembles the native form from the neutral sections; the <code>.vio</code> stays framework-neutral.</div><span class="tag ok">CrewAI shipped</span></div>
+  </div>
+</div></div>
+
+<!-- ===================== ECOSYSTEM ===================== -->
+<div class="page" id="page-ecosystem"><div class="wrap" style="padding-top:56px;padding-bottom:96px">
+  <h1 style="font-size:clamp(32px,4vw,46px)">Ecosystem</h1>
+  <p class="lead" style="margin-top:16px">What produces, signs, deploys and runs a <code>.vio</code> today — with status stated plainly. An implementation is listed as shipped only when it is in a released build.</p>
+
+  <h2 style="margin-top:56px">Reference implementations</h2>
+  <div class="eco" style="margin-top:20px">
+    <div><div class="who">Viorant Hub</div><div class="what">Producer. Authors prompts, skills, memory, models and agents in a workspace, tree-shakes and inline-resolves them, and compiles the workspace to a <code>.vio</code> bundle. Local runs compile-then-run through the same artifact shape; deployment ships the bundle to a run URL.</div><span class="tag ok">shipped · 1.6</span></div>
+    <div><div class="who">Helix</div><div class="what">Deployer. Consumes a <code>.vio</code>, verifies it via Sign, routes each artifact by its declared destination, resolves references and connector auth on the target, and binds runtime values after verification. One engine behind the <code>vio</code> CLI, the Helix MCP server and the Viorant Agent.</div><span class="tag ok">local path shipped</span></div>
+    <div><div class="who">Viorant Sign</div><div class="what">Optional signing and verification substrate at <a href="https://sign.viorant.ai" rel="noopener">sign.viorant.ai</a>. Defines <code>vio_bundle</code> as a first-class signable asset, <code>canonicalize_vio_bundle()</code> over RFC 8785, the key registry, verification engine, trust scoring and enforcement gate. The format is built to match its outputs.</div><span class="tag plan">coming soon</span></div>
+    <div><div class="who">.vio parser</div><div class="what">Dedicated library with typed access to the manifest, index and bodies, canonicalization and digest recomputation built in. A convenience layer over the plain-YAML guarantee, never a requirement to read a bundle.</div><span class="tag plan">coming soon</span></div>
+    <div><div class="who">Viorant Cloud</div><div class="what">Hosted runtime target. Receives deployed bundles and returns a run URL and run key; provider credentials stay encrypted locally and ride the connector rail.</div><span class="tag ok">shipped</span></div>
+  </div>
+
+  <h2 style="margin-top:64px">Framework adapters</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">An adapter assembles a framework's native form from the neutral sections at instantiate. The bundle never changes; only the adapter does.</p>
+  <div class="eco" style="margin-top:20px">
+    <div><div class="who">CrewAI</div><div class="what">Single-agent and within-crew composition. <code>output.expected</code> folds into the Task's expected output; <code>output.schema</code> validates the result and wires <code>source: task</code>.</div><span class="tag ok">shipped</span></div>
+    <div><div class="who">LangChain</div><div class="what">Adapter not yet built. The format is already neutral; <code>manifest.framework: langchain</code> is a valid value.</div><span class="tag plan">planned</span></div>
+    <div><div class="who">AutoGen</div><div class="what">Adapter not yet built. <code>manifest.framework: autogen</code> is a valid value.</div><span class="tag plan">planned</span></div>
+    <div><div class="who">Claude Agent SDK</div><div class="what">Adapter not yet built. Proposed <code>manifest.framework: claude-sdk</code>; hosted Claude models ride the connector rail.</div><span class="tag plan">planned</span></div>
+    <div><div class="who">Vercel AI SDK</div><div class="what">Adapter not yet built. Proposed <code>manifest.framework: vercel-ai</code>; executable skills map to <code>runtime: js</code>.</div><span class="tag plan">planned</span></div>
+    <div><div class="who">Google ADK</div><div class="what">Adapter not yet built. Proposed <code>manifest.framework: adk</code>.</div><span class="tag plan">planned</span></div>
+    <div><div class="who">ACP</div><div class="what">Adapter not yet built.</div><span class="tag plan">planned</span></div>
+  </div>
+
+  <h2 style="margin-top:64px">Connectors and integrations</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">A bundle exposes three things every surrounding tool can consume without parsing skill code: the capability surface in <code>manifest.requires[]</code> and each skill's <code>tools</code>, a digest for every artifact, and a declared destination for each. Connectors and integrations plug in on those three surfaces.</p>
+  <div class="eco" style="margin-top:20px">
+    <div><div class="who">MCP connectors</div><div class="what">Gmail, Slack, SerpAPI and any MCP-exposed tool. Pinned inside the signed skill as <code>kind: mcp</code> with connector and scopes; OAuth is resolved per deployment on the control plane and injected at run via <code>connection://</code>. Hosted models ride the same rail.</div><span class="tag ok">shipped</span></div>
+    <div><div class="who">Observability</div><div class="what">Every run carries the bundle id, version and per-artifact digests, so traces and evals attribute behavior to the exact signed prompt, skill and model descriptor that produced it. Adapters emit these as span attributes for tracing and evaluation platforms.</div><span class="tag ok">available</span></div>
+    <div><div class="who">Security scanning</div><div class="what">Scanners read the capability surface from the manifest before deploy: required connectors, requested scopes, executable skills and their runtimes. A widened scope or an undeclared tool is detectable without executing anything. Detection-rule engines can evaluate skill bodies as plain text.</div><span class="tag ok">available</span></div>
+    <div><div class="who">Registries and stores</div><div class="what">Artifacts with <code>deploy: registry</code> and <code>deploy: store</code> are addressable by digest; a registry can serve a signed prompt or skill to any bundle that pins it.</div><span class="tag ok">shipped</span></div>
+  </div>
+
+  <h2 style="margin-top:64px">Licensing</h2>
+  <p class="muted" style="margin-top:10px;max-width:72ch">Implementing the format is free, worldwide and royalty-free, and needs no agreement with anyone.</p>
+  <div class="eco" style="margin-top:20px">
+    <div><div class="who">Specification, schema, examples, conformance</div><div class="what">CC-BY-4.0. Attribution required; derivatives allowed.</div><span class="tag ok">open</span></div>
+    <div><div class="who">Reference tooling, skills, website source</div><div class="what">Apache-2.0 — chosen over MIT because MIT grants no patent rights, and a licensor holding a reading patent would otherwise leave implementers exposed.</div><span class="tag ok">open</span></div>
+    <div><div class="who">Patent rights in the format</div><div class="what">Royalty-free non-assertion covenant, scoped to conforming implementations, reciprocal, binding on successors. It does not extend to the Helix engine or the Sign substrate, which are separate patents and separate products.</div><span class="tag ok">covenant</span></div>
+    <div><div class="who">.vio · VIO · the VIO Project · VIO Conformant</div><div class="what">Trademarks of Viorant Inc., not licensed by either grant. Use the extension and say what is true, freely; claiming the certification mark requires passing the suite.</div><span class="tag spec">reserved</span></div>
+  </div>
+
+  <h2 style="margin-top:64px">Adjacent work</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">Several open efforts describe an agent — its identity, capabilities, tools and permissions — as a schema. <code>.vio</code> occupies the layer after that one: packaging, pinning and provenance for the thing you deploy. They are complements, and a describing format is a natural conversion source (see <a href="#/integrate">Integrate</a>).</p>
+  <div class="eco" style="margin-top:20px">
+    <div><div class="who">Description formats</div><div class="what">Agent Format, Agent Definition Language, agent cards and similar efforts declare what an agent is. None of them defines a signed, digest-pinned bundle, and none replaces one.</div><span class="tag spec">complementary</span></div>
+    <div><div class="who">Provenance and supply chain</div><div class="what">Digest pinning, canonicalization and detached signatures follow the same reasoning as software supply-chain provenance: sign what you author, pin what you reference, verify before you run.</div><span class="tag spec">aligned</span></div>
+  </div>
+
+  <h2 style="margin-top:64px">Standards this format leans on</h2>
+  <div class="grid g3" style="margin-top:20px">
+    <div><h3>RFC 8785 — JSON Canonicalization Scheme</h3><p class="muted small" style="margin-top:8px">The canonical form every digest and signature is computed over, so cosmetic reformatting never invalidates a signature.</p></div>
+    <div><h3>YAML 1.2 core schema</h3><p class="muted small" style="margin-top:8px">The portable subset the format restricts itself to. No anchors, aliases, custom tags or merge keys, by rule.</p></div>
+    <div><h3>Model Context Protocol</h3><p class="muted small" style="margin-top:8px">Tools with <code>kind: mcp</code> are MCP connector tools; the connector and scopes are pinned inside the signed skill.</p></div>
+    <div><h3>OCI images</h3><p class="muted small" style="margin-top:8px">Not the bundle — but the reference form for heavy skill trees and the deployer's pre-baked base images.</p></div>
+    <div><h3>JSON Schema</h3><p class="muted small" style="margin-top:8px">The vocabulary of <code>output.schema</code>, the agent's typed output contract.</p></div>
+    <div><h3>Semantic Versioning</h3><p class="muted small" style="margin-top:8px">Package identity in <code>manifest.version</code>. The format itself is versioned separately by the integer <code>vio</code> key.</p></div>
+  </div>
+
+  <h2 style="margin-top:64px">Implementing the <code>.vio</code> artifact format?</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">Readers, verifiers, deployers, adapters and converters built against this specification are listed here once they pass the relevant <a href="#/conformance">conformance level</a>. The process is described under <a href="#/governance#process">Governance</a>. Source, fixtures and issues live in the <a href="https://github.com/viorant/vioformat" rel="noopener">GitHub repository</a>.</p>
+</div></div>
+
+<!-- ===================== CONFORMANCE ===================== -->
+<div class="page" id="page-conformance"><div class="wrap" style="padding-top:56px;padding-bottom:96px">
+  <h1 style="font-size:clamp(32px,4vw,46px)">Conformance</h1>
+  <p class="lead" style="margin-top:16px">Three levels, cumulative. Each is defined by what an implementation must accept, what it must reject, and what it must never do.</p>
+  <div class="levels" style="margin-top:36px">
+    <div><div class="lv">Level 1</div><h3>Reader</h3>
+      <ul>
+        <li>Parses any bundle that meets the plain-YAML guarantee with a stock YAML 1.2 parser.</li>
+        <li>Requires <code>vio</code> to be an integer and rejects a version it does not implement.</li>
+        <li>Treats every value outside the reserved sets for <code>composition</code>, <code>type</code>, <code>kind</code>, <code>runtime</code>, <code>deploy</code>, <code>source</code>, <code>tools[].kind</code>, <code>mode</code> and <code>layer</code> as reserved, and rejects cleanly.</li>
+        <li>Reads a memory body with no <code>layer</code> as <code>seed</code>.</li>
+        <li>Never interprets a <code>sig</code> or <code>digest</code> as verified.</li>
+      </ul></div>
+    <div><div class="lv">Level 2</div><h3>Verifier</h3>
+      <ul>
+        <li>Everything in Level 1.</li>
+        <li>Recomputes each artifact's <code>digest</code> over its canonical form: RFC 8785 for structured content; sorted-path, per-file NFC map for skill trees; <code>{ content }</code> only for memory.</li>
+        <li>Verifies per-artifact <code>sig</code> against the signer's registered key for the declared <code>algo_id</code>.</li>
+        <li>Verifies the <code>vio_bundle</code> signature over the canonical manifest, and therefore every listed digest.</li>
+        <li>Reports a digest mismatch on a digest-only artifact as a bundle verification failure, not a warning.</li>
+        <li>Never verifies over on-disk bytes; never accepts a signature computed over a rendered (interpolated) template.</li>
+      </ul></div>
+    <div><div class="lv">Level 3</div><h3>Deployer</h3>
+      <ul>
+        <li>Everything in Level 2, and verification precedes every other step.</li>
+        <li>Routes each artifact by its declared <code>deploy</code> value; never infers a destination.</li>
+        <li>Resolves <code>ref</code>s on the target and checks the resolved bytes against the manifest digest before use.</li>
+        <li>Gates on <code>manifest.requires[]</code> connector dependencies: a required connection absent from the control plane blocks the deploy.</li>
+        <li>Binds <code>input</code>, <code>secret</code>, <code>connector</code>, <code>env</code> and <code>task</code> values after verification, never before; fails a run that omits a required <code>input</code>.</li>
+        <li>Materializes memory by <code>layer</code> and never overwrites an existing runtime object on redeploy.</li>
+      </ul></div>
+  </div>
+  <h2 style="margin-top:64px">VIO Conformant</h2>
+  <p class="lead" style="margin-top:12px">Implementing the format is free and requires no agreement with anyone. Claiming the mark requires passing the suite — and nothing else.</p>
+  <div class="grid g3" style="margin-top:22px">
+    <div><h3>Granted on evidence</h3><p class="muted small" style="margin-top:8px">Run the conformance cases at the level you claim and publish the output. Passing is the only requirement; a competitor of the reference implementer is entitled to the mark on identical terms.</p></div>
+    <div><h3>Always qualified</h3><p class="muted small" style="margin-top:8px">"VIO Conformant — Level 2 (Verifier), format version 1, revision 4." Never the bare mark: a claim without a level and a revision tells the reader nothing.</p></div>
+    <div><h3>Lapses on revision</h3><p class="muted small" style="margin-top:8px">A claim lapses when the revision it was granted against is superseded by one that changes the cases it passed. Re-run, re-publish, re-claim.</p></div>
+  </div>
+  <p class="muted" style="margin-top:22px;max-width:70ch">The mark is the one thing the project controls. The specification, the schema and the reference tooling are open; the name is held so that "conformant" means something to the person reading it. Policy: <a href="https://github.com/viorant/vioformat/blob/main/TRADEMARKS.md" rel="noopener">TRADEMARKS.md</a>.</p>
+
+  <h2 style="margin-top:64px">Invariants every level shares</h2>
+  <div class="grid g2" style="margin-top:20px">
+    <div><h3>Secrets never enter the file</h3><p class="muted small" style="margin-top:8px">A bundle containing a literal credential where a <code>secret://</code> or <code>connection://</code> handle belongs is non-conforming, whatever its signatures say.</p></div>
+    <div><h3>Capability is not widened silently</h3><p class="muted small" style="margin-top:8px">No implementation may grant a tool, connector or scope that is not declared in a signed skill and surfaced in <code>manifest.requires[]</code>.</p></div>
+    <div><h3>Weights are never embedded</h3><p class="muted small" style="margin-top:8px">A <code>type: model</code> artifact with a body is non-conforming. Models are references with descriptors.</p></div>
+    <div><h3>Producers ship after consumers</h3><p class="muted small" style="margin-top:8px">A producer must not emit a field that the deployed consumer population rejects. The memory <code>layer</code> rollout is the reference case.</p></div>
+  </div>
+  <p class="small muted" style="margin-top:40px">A machine-checkable conformance suite — fixture bundles per level, with expected accept/reject outcomes — is the next artifact this site will publish. Until it exists, the <a href="#/integrate#reader">in-browser reader</a> demonstrates Level 1 checks.</p>
+</div></div>
+
+<!-- ===================== CONTRIBUTORS ===================== -->
+<div class="page" id="page-contributors"><div class="wrap" style="padding-top:56px;padding-bottom:96px">
+  <h1 style="font-size:clamp(32px,4vw,46px)">Contributors</h1>
+  <p class="lead" style="margin-top:16px">Who wrote each revision of the specification, and who has contributed to the <code>.vio</code> artifact format since. Authorship is recorded per revision so that credit tracks the text, not the masthead.</p>
+
+  <h2 style="margin-top:56px">Editors</h2>
+  <div class="people" style="margin-top:20px">
+    <div class="person"><h3>Vivien Roggero</h3><div class="role">Editor · CEO and co-founder, Viorant</div><p>Format direction, positioning of the standard, governance and this site. Author on every published revision.</p></div>
+    <div class="person"><h3>Adi Vora</h3><div class="role">Editor · CTO and co-founder, Viorant</div><p>Specification owner. Wrote the engineering text of revisions 1 through 4, ADR-035 and ADR-037, and the reference implementation in Hub and Helix.</p></div>
+  </div>
+
+  <h2 style="margin-top:64px">Authorship by revision</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">Each row is one change to the specification text or to a decision record it derives from. A name on a row means that person authored or co-authored that change.</p>
+  <div class="ver" style="margin-top:20px">
+    <div><div class="v"><b>Revision 4</b><span>2026-09-04</span></div><div class="what">§1.8 added — memory bodies declare a <code>layer</code> (seed | runtime), optional, default seed, outside the digest subject. Materialization, redeploy preservation and consumers-first rollout.</div><div class="who">Adi Vora<small>author</small>Vivien Roggero<small>review</small></div></div>
+    <div><div class="v"><b>ADR-037</b><span>2026 · accepted</span></div><div class="what">File-based memory model — <code>.md</code> files, per-agent read and write sets, framework-neutral lowering. Basis for §1.8 and §4.</div><div class="who">Adi Vora<small>author</small></div></div>
+    <div><div class="v"><b>Revisions 2–3</b><span>2026-06 to 2026-08</span></div><div class="what">Alignment of the text with ADR-035: two-tier trust, two signing domains, the templated-artifact model, skills as file trees, models rail and connector rail, decode-parameter precedence, the implemented-subset section.</div><div class="who">Adi Vora<small>author</small>Vivien Roggero<small>co-author</small></div></div>
+    <div><div class="v"><b>ADR-035</b><span>2026-06-14 · accepted</span></div><div class="what"><code>.vio</code> is a signed YAML artifact bundle deployed by Helix. Supersedes the format clause of ADR-010.</div><div class="who">Adi Vora<small>author</small>Vivien Roggero<small>co-author</small></div></div>
+    <div><div class="v"><b>Revision 1</b><span>2026-05-08</span></div><div class="what">Specification created — full engineering text at target altitude with an explicit implemented-subset section.</div><div class="who">Adi Vora<small>author</small>Vivien Roggero<small>co-author</small></div></div>
+    <div><div class="v"><b>ADR-010</b><span>retired</span></div><div class="what"><code>.vio</code> as an OCI image with a manifest annotation. Superseded; recorded for provenance.</div><div class="who">Adi Vora<small>author</small></div></div>
+  </div>
+
+  <h2 style="margin-top:64px">Contributors</h2>
+  <p class="muted" style="margin-top:10px;max-width:70ch">Beyond the editors, contributions are credited by kind. A name appears here once a change has been accepted through the <a href="#/governance#process">change process</a>, an implementation has passed a <a href="#/conformance">conformance level</a>, or a review has materially changed the text.</p>
+  <div class="grid g4" style="margin-top:20px">
+    <div><h3>Specification text</h3><p class="muted small" style="margin-top:8px">Accepted proposals and revisions.</p><p class="small" style="margin-top:8px">Vivien Roggero · Adi Vora</p></div>
+    <div><h3>Reference implementation</h3><p class="muted small" style="margin-top:8px">Hub compiler, Helix deployer, adapters.</p><p class="small" style="margin-top:8px">Adi Vora</p></div>
+    <div><h3>Review</h3><p class="muted small" style="margin-top:8px">Technical review that changed the text.</p><p class="small muted" style="margin-top:8px">None recorded yet beyond the editors.</p></div>
+    <div><h3>Implementations</h3><p class="muted small" style="margin-top:8px">Conforming readers, verifiers, deployers, converters.</p><p class="small muted" style="margin-top:8px">None external yet — see <a href="#/ecosystem">Ecosystem</a>.</p></div>
+  </div>
+
+  <h2 style="margin-top:64px">How to be listed</h2>
+  <div class="grid g3" style="margin-top:20px">
+    <div><h3>Propose a change</h3><p class="muted small" style="margin-top:8px">Open a proposal in the <a href="https://github.com/viorant/vioformat" rel="noopener">repository</a> stating the problem, the alternatives considered and a compatibility statement. Accepted proposals credit the proposer on the revision that lands them.</p></div>
+    <div><h3>Ship an implementation</h3><p class="muted small" style="margin-top:8px">Submit a reader, verifier, deployer, adapter or converter with its conformance level. Listed under Implementations and on the Ecosystem page.</p></div>
+    <div><h3>Review a revision</h3><p class="muted small" style="margin-top:8px">Review that leads to a substantive change is credited on that revision as review.</p></div>
+  </div>
+</div></div>
+
+<!-- ===================== GOVERNANCE ===================== -->
+<div class="page" id="page-governance"><div class="wrap doc">
+<aside class="toc">
+  <div class="h">Governance</div>
+  <ul>
+    <li><a href="#/governance#charter">Charter</a></li>
+    <li><a href="#/governance#process">Change process</a></li>
+    <li><a href="#/governance#versioning">Versioning</a></li>
+    <li><a href="#/governance#changelog">Changelog</a></li>
+    <li><a href="#/governance#errata">Errata</a></li>
+    <li><a href="#/governance#glossary">Glossary</a></li>
+    <li><a href="#/governance#cite">Citation</a></li>
+  </ul>
+</aside>
+<article class="body">
+  <h1 style="font-size:clamp(32px,4vw,46px)">Governance</h1>
+  <h2 id="charter">Charter<a class="anchor" href="#/governance#charter">#</a></h2>
+  <p><b>Editors:</b> Vivien Roggero (CEO, Viorant) and Adi Vora (CTO, Viorant) author and maintain the specification. Authorship per revision is tracked on the <a href="#/contributors">Contributors</a> page. The work is published as <b>the VIO Project</b>.</p>
+  <p><b>On the name.</b> <code>.vio</code> takes its extension from Viorant, where the format originated. <i>Verifiable Intelligence Object</i> is a descriptive expansion adopted afterwards, not the origin of the letters. The format is maintained independently of any single implementation; the specification, this site and the repository are not hosted on a vendor domain.</p>
+  <p>The <code>.vio</code> artifact format exists so that an agent composed in one tool can be verified and deployed by another, without either reinventing the format. Its scope is packaging: how prompts, skills, memory, models and agents are bundled, digested and signed. It deliberately does not define cryptography (Sign), scheduling (deployers) or framework semantics (adapters).</p>
+  <p>Four commitments hold across revisions:</p>
+  <ol>
+    <li><b>Readable without us.</b> The plain-YAML guarantee is not negotiable. A revision that requires format-specific tooling to parse is out of scope.</li>
+    <li><b>Additive by default.</b> New fields default to the behavior of bundles that omit them. The memory <code>layer</code> field — optional, defaulting to what existing bundles carried, outside the digest subject — is the template.</li>
+    <li><b>Reserved, not ignored.</b> Unknown values in enumerated fields cause rejection, never a guess. Silent acceptance is how a deployer mis-deploys.</li>
+    <li><b>The built subset is published.</b> The gap between the specification and its reference implementation is stated in the specification itself and kept current.</li>
+  </ol>
+
+  <h2 id="process">Change process<a class="anchor" href="#/governance#process">#</a></h2>
+  <p>Load-bearing decisions are recorded as numbered <b>architecture decision records</b>. A change to the format follows the path an ADR takes: proposal with the problem stated and alternatives named, review by the editors, acceptance with a date, and — where a decision supersedes an earlier one — an explicit note on the superseded record. The specification text then changes in a numbered revision that cites the ADR.</p>
+  <p>Proposals that touch the reserved value sets, the digest subject of any artifact type, or the canonical form must include a compatibility statement: what existing bundles do under the change, and whether producers or consumers ship first.</p>
+
+  <h2 id="versioning">Versioning<a class="anchor" href="#/governance#versioning">#</a></h2>
+  <dl class="dl">
+    <dt>vio: N</dt><dd>The format version, an integer at the top of every bundle. It increments only when a reader built against the previous version could misread a bundle. Additive fields do not increment it.</dd>
+    <dt>Specification revision</dt><dd>The prose document carries a revision number and date. Revisions can add fields, tighten wording or record errata without changing <code>vio</code>.</dd>
+    <dt>manifest.version</dt><dd>The package's own semantic version, chosen by its author. Unrelated to the format version.</dd>
+  </dl>
+
+  <h2 id="changelog">Changelog<a class="anchor" href="#/governance#changelog">#</a></h2>
+  <div class="tl" style="margin-top:20px">
+    <div><div class="d">2026-09-04 · revision 4</div><h3>Memory bodies declare a <code>layer</code></h3><p>Added §1.8. A memory artifact body carries <code>layer: seed | runtime</code>, optional, defaulting to <code>seed</code>, outside the digest subject. Materialization, redeploy preservation and consumers-first rollout specified.</p></div>
+    <div><div class="d">2026-06-14 · ADR-035 accepted</div><h3><code>.vio</code> is a signed YAML artifact bundle</h3><p>Supersedes the format clause of ADR-010. The bundle is a single self-contained YAML document; OCI relocates to deployer base images. Two-tier trust, two signing domains and the templated-artifact model recorded.</p></div>
+    <div><div class="d">2026-05-08 · revision 1</div><h3>Specification page created</h3><p>First full engineering specification of the format, written at target altitude with an explicit implemented-subset section.</p></div>
+    <div><div class="d">Earlier · ADR-010</div><h3><code>.vio</code> as an OCI image with a manifest annotation</h3><p>Retired. Recorded here because bundles and documentation from that period exist; see Errata.</p></div>
+  </div>
+
+  <h2 id="errata">Errata<a class="anchor" href="#/governance#errata">#</a></h2>
+  <div class="tablewrap"><table><thead><tr><th>Ref</th><th>Affects</th><th>Correction</th></tr></thead><tbody>
+    <tr><td><code>E-001</code></td><td>Any material describing a <code>.vio</code> as an OCI image, or claiming <code>docker pull</code> / <code>docker run</code> of a <code>.vio</code></td><td>Retired by ADR-035. A <code>.vio</code> is a YAML bundle. OCI images are the reference form for heavy skill trees and the deployer's base images only.</td></tr>
+    <tr><td><code>E-002</code></td><td>Statements that memory is body-less or reference-only</td><td>Superseded. Memory artifacts carry an inline <code>.memory.md</code> body and a <code>layer</code> (rev. 4). The <code>store</code> destination and <code>mem://</code> references remain valid.</td></tr>
+    <tr><td><code>E-003</code></td><td>Any reading of memory <code>layer</code> as derived from an agent's read/write binding</td><td>Layer is declared on the asset, never derived from the binding. A write-bound seed memory is promoted to a runtime copy on first write; the seed is not mutated.</td></tr>
+  </tbody></table></div>
+
+  <h2 id="glossary">Glossary<a class="anchor" href="#/governance#glossary">#</a></h2>
+  <dl class="dl">
+    <dt>artifact</dt><dd>One of the five typed units a bundle packages: prompt, skill, memory, model, agent.</dd>
+    <dt>authored artifact</dt><dd>An artifact with a <code>sig</code> — prompt, skill or agent. You sign what you author.</dd>
+    <dt>binding</dt><dd>The mapping from a variable to its source; the explicit statement of what stays dynamic.</dd>
+    <dt>bundle</dt><dd>A whole <code>.vio</code> document; also the <code>composition</code> value for multi-agent packages.</dd>
+    <dt>canonical form</dt><dd>The RFC 8785 serialization that digests and signatures are computed over.</dd>
+    <dt>capability surface</dt><dd>The tools, connectors and scopes a skill declares — inside its signature.</dd>
+    <dt>connector</dt><dd>Org-scoped, OAuth-bound infrastructure resolved on the control plane; never packaged.</dd>
+    <dt>connector rail</dt><dd>The path by which hosted models and MCP tools receive credentials at run.</dd>
+    <dt>deploy</dt><dd>An artifact's declared destination: runtime, runtime/standalone, registry or store.</dd>
+    <dt>digest-only</dt><dd>An artifact with a <code>digest</code> and no <code>sig</code> — memory and model. Integrity without authorship.</dd>
+    <dt>layer</dt><dd>A memory body's declaration of seed (curated) or runtime (agent-local scratch).</dd>
+    <dt>models rail</dt><dd>The path by which self-hosted weights are resolved, stood up and digest-checked on the target.</dd>
+    <dt>reserved value</dt><dd>Any value outside a field's enumerated set. Rejected by conforming readers.</dd>
+    <dt>template</dt><dd>What is signed: sections, variable schema and bindings — never the rendered string.</dd>
+    <dt>tree-shake</dt><dd>Producer step that ships only assets reachable from the composed agents.</dd>
+    <dt>two-facet output</dt><dd>An agent's <code>output.expected</code> (prose, prompt-shaping) and <code>output.schema</code> (typed, validating).</dd>
+    <dt>VIO</dt><dd>Verifiable Intelligence Object — the expansion used as the format's tagline. See the note on the extension's origin under Charter.</dd>
+    <dt>vio_bundle</dt><dd>The Sign asset type for a whole bundle; its signature is computed over the canonical manifest.</dd>
+  </dl>
+
+  <h2 id="cite">Citation<a class="anchor" href="#/governance#cite">#</a></h2>
+  <pre><code>@techreport{vio-spec-2026,
+  title   = {The .vio Artifact Specification},
+  author  = {Roggero, Vivien and Vora, Adi},
+  institution = {The VIO Project},
+  year    = {2026},
+  note    = {Format version 1, specification revision 4 (2026-09-04)},
+  url     = {https://vioformat.org/spec}
+}</code></pre>
+</article>
+</div></div>
+</main>
+<footer><div class="wrap">
+  <div class="fcols">
+    <div><h4>Specification</h4><ul><li><a href="#/spec">Specification</a></li><li><a href="#/reference">Field reference</a></li><li><a href="#/conformance">Conformance</a></li><li><a href="#/governance#charter">Charter</a></li><li><a href="#/governance#errata">Errata</a></li><li><a href="#/governance#glossary">Glossary</a></li><li><a href="#/governance#cite">Citation</a></li></ul></div>
+    <div><h4>Format</h4><ul><li><a href="#/spec#s1">Physical format</a></li><li><a href="#/spec#s2">Signing representation</a></li><li><a href="#/spec#s1-5">Templates and binding</a></li><li><a href="#/spec#s1-6">Skills and tools</a></li><li><a href="#/spec#s3">Implemented subset</a></li></ul></div>
+    <div><h4>Developers</h4><ul><li><a href="#/integrate">Integrate</a></li><li><a href="#/integrate#reader">Browser reader</a></li><li><a href="#/ecosystem">Ecosystem</a></li></ul></div>
+    <div><h4>Project</h4><ul><li><a href="https://github.com/viorant/vioformat/blob/main/LICENSE" rel="noopener">Licence</a></li><li><a href="https://github.com/viorant/vioformat/blob/main/PATENTS.md" rel="noopener">Patent covenant</a></li><li><a href="https://github.com/viorant/vioformat/blob/main/TRADEMARKS.md" rel="noopener">Trademarks</a></li><li><a href="#/governance#process">Change process</a></li><li><a href="#/governance#versioning">Versioning</a></li><li><a href="#/governance#changelog">Changelog</a></li><li><a href="#/spec#s5">Open questions</a></li><li><a href="#/contributors">Contributors</a></li></ul></div>
+    <div><h4>Reference implementation</h4><ul><li><a href="https://viorant.io" rel="noopener">viorant.io</a></li><li><a href="https://sign.viorant.ai" rel="noopener">Viorant Sign</a></li><li><a href="https://github.com/viorant/vioformat" rel="noopener">GitHub</a></li></ul></div>
+  </div>
+  <div class="fbottom">
+    <div><span class="brand" style="font-size:14px"><span class="dot" style="width:8px;height:8px"></span>.vio</span> &nbsp;<b>The VIO Project</b> — VIO, the Verifiable Intelligence Object: the signed artifact format for AI agents. An open specification: format version 1 · revision 4 · 2026-09-04. Authors: Vivien Roggero, Adi Vora.<br><span style="color:var(--ink-3)">Specification CC-BY-4.0 · tooling Apache-2.0 · format patents licensed royalty-free to conforming implementations.</span></div>
+    <div>Reference implementation by <a href="https://viorant.io" rel="noopener">Viorant</a>. The <code>.vio</code> format and the Helix deployment engine are the subject of pending patent applications — patent pending.</div>
+  </div>
+</div></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<script>
+(function(){
+  // ---------- router ----------
+  var pages = ['home','spec','reference','integrate','ecosystem','conformance','governance','contributors'];
+  function route(){
+    var h = location.hash || '#/';
+    var m = h.match(/^#\/([a-z]*)(?:#(.*))?$/);
+    var page = (m && m[1]) ? m[1] : 'home';
+    var anchor = m && m[2] ? m[2] : null;
+    if (pages.indexOf(page) < 0) page = 'home';
+    pages.forEach(function(p){ var el = document.getElementById('page-'+p); if (el) el.classList.toggle('active', p===page); });
+    document.querySelectorAll('[data-nav]').forEach(function(a){ a.classList.toggle('active', a.getAttribute('data-nav')===page); });
+    document.getElementById('navlist').classList.remove('open');
+    document.title = (page==='home' ? '.vio — the signed artifact format for AI agents' : '.vio · ' + page.charAt(0).toUpperCase()+page.slice(1));
+    if (anchor){ var t = document.getElementById(anchor); if (t){ setTimeout(function(){ var y = t.getBoundingClientRect().top + window.scrollY - 84; window.scrollTo({top:y}); }, 0); } }
+    else window.scrollTo({top:0});
+  }
+  window.addEventListener('hashchange', route); route();
+  var tg = document.getElementById('navtoggle');
+  tg.addEventListener('click', function(){ var l = document.getElementById('navlist'); l.classList.toggle('open'); tg.setAttribute('aria-expanded', l.classList.contains('open')); });
+
+  // ---------- copy buttons ----------
+  document.querySelectorAll('.copybtn').forEach(function(b){
+    b.addEventListener('click', function(){
+      var el = document.getElementById(b.getAttribute('data-copy')); if(!el) return;
+      var txt = el.textContent;
+      var done = function(){ b.textContent='Copied'; setTimeout(function(){ b.textContent='Copy'; },1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, done); else done();
+    });
+  });
+
+  // ---------- field reference ----------
+  var F = [
+    ['top','vio','Format version, an integer. Readers reject versions they do not implement.','1'],
+    ['top','manifest','Authoritative metadata, signed as a unit (vio_bundle over its canonical form).',''],
+    ['top','artifacts','The artifact bodies. Referenced artifacts (model, external skill) have no body here.',''],
+    ['manifest','manifest.id','Package identifier.',''],
+    ['manifest','manifest.name','Human-readable package name.',''],
+    ['manifest','manifest.version','Package version, semver. Unrelated to the vio format version.','semver'],
+    ['manifest','manifest.composition','What the package is.','agent · prompt · skill · memory · model · bundle'],
+    ['manifest','manifest.framework','For agents: the framework the adapter targets. Null otherwise.','crewai · langchain · autogen · …'],
+    ['manifest','manifest.org','Organization scope. Drives trust, RBAC and registry namespace.',''],
+    ['manifest','manifest.team','Team scope, within org.',''],
+    ['manifest','manifest.signer','Who signed the bundle. Resolves in the Sign public_keys registry.','{ certificate_id, algo_id }'],
+    ['manifest','manifest.signer.algo_id','Signature algorithm per Sign.','0x02 RSA-2048+ECDSA-P256 (default) · 0x04 Ed25519 · 0x03 with Dilithium'],
+    ['manifest','manifest.created','Creation timestamp.','ISO-8601 UTC'],
+    ['manifest','manifest.artifacts[]','Authoritative index: one descriptor per artifact. Every digest listed here is bound by the bundle signature.',''],
+    ['manifest','manifest.requires[]','Cross-artifact and connector dependencies, surfaced so a deployer can gate without parsing bodies.','{ ref, digest } · { connector, scopes[], auth }'],
+    ['index','artifacts[].id','Bundle-local identifier siblings reference, e.g. prompts: [{ref: sysprompt}].',''],
+    ['index','artifacts[].type','Artifact type.','prompt · skill · memory · model · agent'],
+    ['index','artifacts[].kind','Sub-kind; for skills only today.','declarative · executable'],
+    ['index','artifacts[].runtime','Executable skill runtime.','python · js'],
+    ['index','artifacts[].entry','Executable skill entrypoint within its file tree, e.g. scripts/run.py.',''],
+    ['index','artifacts[].deploy','Declared destination and mode. A deployer routes by this; it never infers.','runtime · runtime/standalone · registry · store'],
+    ['index','artifacts[].digest','sha256 of the artifact\'s canonical content. Binds the artifact into the signed manifest.','sha256:…'],
+    ['index','artifacts[].sig','Per-artifact signature. Present only on authored artifacts (prompt, skill, agent).','base64'],
+    ['index','artifacts[].ref','External reference. Present only on referenced artifacts.','model://… · mem://… · git ref · OCI image'],
+    ['model','artifacts[].engine','Inference runtime for a model reference; selects the inference base image flavor.','vllm · llama.cpp · ollama · …'],
+    ['model','artifacts[].quantization','Quantization of the served weights. Optional.','e.g. q4_k_m'],
+    ['model','artifacts[].context_length','Served context window. Optional.','integer'],
+    ['model','artifacts[].served_as','The name the agent or framework calls the model by. Optional; defaults to name.',''],
+    ['model','artifacts[].params','Recommended decode parameters a model may publish. Overridden by agent, then by run.','{ temperature, max_tokens, top_p, stop, … }'],
+    ['prompt','prompt.mode','How the adapter assembles the prompt.','chat · single_shot'],
+    ['prompt','prompt.content.system','System section, a template with {{vars}}. Inside the signature.',''],
+    ['prompt','prompt.content.user','User section, a template with {{vars}}. Inside the signature.',''],
+    ['prompt','prompt.variables[]','Dynamic-slot schema spanning all sections. Inside the signature.','{ name, type, required, source, default, values }'],
+    ['prompt','variables[].source','Where a value comes from at run. secret and connector are references; the value never enters the file.','input · env · task · connector · secret · static'],
+    ['prompt','prompt.bindings','Artifact-level default binding of each variable to its source; makes the prompt self-runnable. Overridable by an agent.','name: input.name · key: secret://org/team/key'],
+    ['skill','skill.content','Single-file skill body — shorthand for a one-file tree.','block scalar'],
+    ['skill','skill.files','File tree keyed by relative path. Digest is over the canonicalized map (sorted paths, per-file NFC); paths are inside the signature.','{ "SKILL.md": |, "scripts/run.py": |, … }'],
+    ['skill','skill.entry','Entrypoint path within files.',''],
+    ['skill','skill.tools[]','Declared capability surface. Inside the signature: adding a tool or widening a scope breaks it.','{ ref, kind, connector?, scopes? }'],
+    ['skill','tools[].kind','Tool source.','viorant (native, no auth) · mcp (connector, OAuth on the control plane)'],
+    ['skill','tools[].scopes','Least-privilege scope list for an MCP tool.','e.g. [search.read]'],
+    ['agent','agent.content.role','The agent\'s role, framework-neutral.',''],
+    ['agent','agent.content.goal','The agent\'s goal, framework-neutral.',''],
+    ['agent','agent.content.model','Reference to a sibling model plus agent-level decode params.','{ ref, params }'],
+    ['agent','agent.content.prompts[]','Sibling prompt references.','[{ ref }]'],
+    ['agent','agent.content.skills[]','Sibling skill references, with optional deploy override.','[{ ref, deploy? }]'],
+    ['agent','agent.content.memory','Sibling memory reference.','{ ref }'],
+    ['agent','agent.content.inputs[]','Runtime input contract, aggregated from unbound input variables. A run omitting a required input fails before execution.','{ name, type, required }'],
+    ['agent','agent.content.bindings','Agent-level override of a prompt\'s bindings. Recorded in the agent\'s signed content; the prompt\'s signature is untouched.','sysprompt.client: input.client'],
+    ['agent','agent.content.output.expected','Prose expected output. Prompt-shaping; the adapter folds it into assembly.',''],
+    ['agent','agent.content.output.schema','Typed output contract (JSON Schema). Validates the result and wires source: task between agents.',''],
+    ['memory','memory.layer','Which memory layer the body is. Optional, defaults to seed. Not part of the digest subject.','seed · runtime'],
+    ['memory','memory.content','Inline .memory.md text with frontmatter. A runtime body ships frontmatter only. The digest covers { content } only.','block scalar'],
+    ['uri','model://org/name','Self-hosted weights, resolved on the target at deploy and digest-checked.',''],
+    ['uri','mem://org/team/name','A memory store reference.',''],
+    ['uri','secret://org/team/key','A secret reference resolved at run from a secret store. The value never enters the file.',''],
+    ['uri','connection://org/team/connector','A control-plane connection handle through which connector credentials are injected at run.','']
+  ];
+  var LBL = {top:'top level',manifest:'manifest',index:'artifact index',prompt:'prompt body',skill:'skill body',agent:'agent body',memory:'memory body',model:'model entry',uri:'uri scheme'};
+  var filt='all', q='';
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function renderRef(){
+    var rows = document.getElementById('refrows'), out='', n=0, ql=q.toLowerCase();
+    F.forEach(function(r){
+      if (filt!=='all' && r[0]!==filt) return;
+      if (ql && (r[1]+' '+r[2]+' '+r[3]).toLowerCase().indexOf(ql)<0) return;
+      n++;
+      out += '<div class="row"><div class="path">'+esc(r[1])+'</div><div class="where">'+LBL[r[0]]+'</div><div class="desc">'+esc(r[2])+(r[3]?'<span class="vals">'+esc(r[3])+'</span>':'')+'</div></div>';
+    });
+    rows.innerHTML = out || '<div class="empty">No fields match. Try a broader term — every field name, value and description is searchable.</div>';
+    document.getElementById('refcount').textContent = n + ' of ' + F.length + ' fields';
+  }
+  document.getElementById('refq').addEventListener('input', function(e){ q=e.target.value; renderRef(); });
+  document.querySelectorAll('#refchips .chip').forEach(function(c){ c.addEventListener('click', function(){ document.querySelectorAll('#refchips .chip').forEach(function(x){x.classList.remove('on');}); c.classList.add('on'); filt=c.getAttribute('data-f'); renderRef(); }); });
+  renderRef();
+
+  // ---------- reader ----------
+  var EX = document.getElementById('ex1').textContent;
+  var BAD = EX
+    .replace('kind: mcp, connector: serpapi, scopes: [search.read] }\n    content: |\n      def run', 'kind: mcp, connector: serpapi, scopes: [search.read, mail.send] }\n    content: |\n      def run')
+    .replace('type: prompt, deploy: registry,', 'type: prompt, deploy: everywhere,')
+    .replace('ref: mem://viorant/rnd/research, digest: sha256:dd12… }', 'ref: mem://viorant/rnd/research, digest: sha256:dd12…, sig: base64… }')
+    .replace('      client: input.client\n      topic:  input.topic', '      client: input.client\n      topic:  input.topic\n      api_key: sk-live-9f31c0a7e2b4d8');
+  document.getElementById('loadex').addEventListener('click', function(){ document.getElementById('vioin').value = EX; check(); });
+  document.getElementById('loadbad').addEventListener('click', function(){ document.getElementById('vioin').value = BAD; check(); });
+  document.getElementById('runcheck').addEventListener('click', check);
+
+  var COMP=['agent','prompt','skill','memory','model','bundle'], TYPE=['prompt','skill','memory','model','agent'], DEP=['runtime','runtime/standalone','registry','store'], KIND=['declarative','executable'], RT=['python','js'], SRC=['input','env','task','connector','secret','static'], TK=['viorant','mcp'], MODE=['chat','single_shot'], LAYER=['seed','runtime'];
+  function check(){
+    var src = document.getElementById('vioin').value, R=[], fail=0, warn=0;
+    function line(k,t,s){ R.push({k:k,t:t,s:s}); if(k==='fail')fail++; if(k==='warn')warn++; }
+    // plain-YAML guarantee
+    if (/^\s*[^#\n]*&\w+/m.test(src) || /\*\w+/.test(src.replace(/\{\{[^}]*\}\}/g,''))) line('fail','Plain-YAML guarantee: anchors or aliases present','§1 forbids & anchors and * aliases.'); else line('pass','Plain-YAML guarantee: no anchors or aliases','');
+    if (/!\w+/.test(src) && !/^\s*#/m.test(src.match(/.*!\w+.*/)?.[0]||'')) line('fail','Plain-YAML guarantee: custom tag present','§1 forbids !tags.'); else line('pass','Plain-YAML guarantee: no custom tags','');
+    if (/^\s*<<\s*:/m.test(src)) line('fail','Plain-YAML guarantee: merge key present','§1 forbids <<.'); else line('pass','Plain-YAML guarantee: no merge keys','');
+    var doc;
+    try { doc = jsyaml.load(src, {schema: jsyaml.CORE_SCHEMA}); line('pass','Parses with a stock YAML parser','js-yaml 4.1, core schema.'); }
+    catch(e){ line('fail','Does not parse',String(e.message||e).split('\n')[0]); return render(R,fail,warn); }
+    if (!doc || typeof doc!=='object'){ line('fail','Document is not a mapping',''); return render(R,fail,warn); }
+    // top level
+    if (Number.isInteger(doc.vio)) { if (doc.vio===1) line('pass','vio: 1 — format version implemented',''); else line('fail','vio: '+doc.vio+' — version not implemented by this reader','A conforming reader rejects versions it does not implement.'); }
+    else line('fail','vio must be an integer','Got '+JSON.stringify(doc.vio));
+    var extra = Object.keys(doc).filter(function(k){return ['vio','manifest','artifacts'].indexOf(k)<0;});
+    if (extra.length) line('warn','Unknown top-level keys: '+extra.join(', '),'Only vio, manifest and artifacts are defined.'); else line('pass','Top-level keys: vio, manifest, artifacts','');
+    var m = doc.manifest;
+    if (!m || typeof m!=='object'){ line('fail','manifest missing',''); return render(R,fail,warn); }
+    ['id','name','version','composition','signer','created','artifacts'].forEach(function(k){ if (!(k in m)) line('fail','manifest.'+k+' missing',''); });
+    if (m.composition!==undefined) { if (COMP.indexOf(m.composition)>=0) line('pass','manifest.composition: '+m.composition,''); else line('fail','manifest.composition "'+m.composition+'" is reserved','Valid: '+COMP.join(', ')); }
+    if (m.composition==='agent' && !m.framework) line('warn','composition is agent but manifest.framework is unset','An adapter cannot be selected.');
+    if (m.signer){ if (m.signer.certificate_id && m.signer.algo_id!==undefined) line('pass','manifest.signer: '+m.signer.certificate_id+' · algo_id '+(typeof m.signer.algo_id==='number'?'0x'+m.signer.algo_id.toString(16).padStart(2,'0'):m.signer.algo_id),''); else line('fail','manifest.signer must carry certificate_id and algo_id',''); }
+    if (m.created!==undefined){ if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(String(m.created instanceof Date? m.created.toISOString().replace(/\.000Z$/,'Z') : m.created))) line('pass','manifest.created is ISO-8601 UTC',''); else line('warn','manifest.created should be ISO-8601 UTC','Got '+m.created); }
+    var idx = Array.isArray(m.artifacts)? m.artifacts : [];
+    if (!idx.length) line('fail','manifest.artifacts[] is empty','');
+    var bodies = Array.isArray(doc.artifacts)? doc.artifacts : [];
+    var bodyById = {}; bodies.forEach(function(b){ if(b&&b.id) bodyById[b.id]=b; });
+    var ids = {};
+    idx.forEach(function(a){
+      var tag = 'artifacts['+(a.id||'?')+']';
+      if (!a.id) line('fail',tag+' has no id',''); else if (ids[a.id]) line('fail',tag+' duplicate id',''); ids[a.id]=1;
+      if (TYPE.indexOf(a.type)<0) line('fail',tag+' type "'+a.type+'" is reserved','Valid: '+TYPE.join(', '));
+      if (DEP.indexOf(a.deploy)<0) line('fail',tag+' deploy "'+a.deploy+'" is reserved','Valid: '+DEP.join(', '));
+      if (!/^sha256:[0-9a-f…]+$/i.test(String(a.digest||''))) line('fail',tag+' digest must be sha256:…','Got '+JSON.stringify(a.digest));
+      if (a.type==='skill'){ if (a.kind!==undefined && KIND.indexOf(a.kind)<0) line('fail',tag+' kind "'+a.kind+'" is reserved',''); if (a.kind==='executable' && RT.indexOf(a.runtime)<0) line('fail',tag+' executable skill needs runtime python|js',''); }
+      var authored = ['prompt','skill','agent'].indexOf(a.type)>=0;
+      if (authored && !('sig' in a)) line('warn',tag+' is authored ('+a.type+') but carries no sig','Unsigned bundles are valid for local runs; a deployer will refuse it.');
+      if (!authored && ('sig' in a)) line('fail',tag+' is '+a.type+' — integrity-only tier — but carries a sig','§2.1: memory and model are digest-pinned, never author-signed.');
+      if (a.type==='model'){ if (!a.ref) line('fail',tag+' model must be a ref, never a body',''); if (bodyById[a.id] && bodyById[a.id].content) line('fail',tag+' model carries a body','§1.7: weights are never embedded.'); if (a.engine===undefined) line('warn',tag+' model has no engine descriptor','A deployer cannot select an inference base image.'); }
+      if (a.type!=='model' && !a.ref && !bodyById[a.id]) line('fail',tag+' has neither a body nor a ref','');
+      if (a.ref && bodyById[a.id] && bodyById[a.id].content) line('warn',tag+' has both a ref and a body','');
+    });
+    if (idx.length && !fail) line('pass','Artifact index: '+idx.length+' entries, all types, deploy values and digests well-formed','');
+    // bodies
+    bodies.forEach(function(b){
+      if (!b||!b.id) return; var tag='artifacts['+b.id+']';
+      if (!ids[b.id]) line('fail',tag+' body has no manifest index entry','Every body must be described in manifest.artifacts[].');
+      if (b.type==='prompt'){ if (b.mode!==undefined && MODE.indexOf(b.mode)<0) line('fail',tag+' mode "'+b.mode+'" is reserved','');
+        (b.variables||[]).forEach(function(v){ if (SRC.indexOf(v.source)<0) line('fail',tag+' variable '+v.name+' source "'+v.source+'" is reserved','Valid: '+SRC.join(', ')); });
+        var used = ((b.content&&typeof b.content==='object')? Object.values(b.content).join(' ') : String(b.content||'')).match(/\{\{\s*([a-zA-Z_][\w]*)\s*\}\}/g)||[];
+        var declared = (b.variables||[]).map(function(v){return v.name;});
+        used.map(function(u){return u.replace(/[{}\s]/g,'');}).forEach(function(u){ if (declared.indexOf(u)<0) line('fail',tag+' uses {{'+u+'}} but does not declare it in variables[]','§2.4: a stray slot is a signature-relevant change.'); });
+        Object.keys(b.bindings||{}).forEach(function(k){ if (declared.indexOf(k)<0) line('warn',tag+' binds "'+k+'" which is not a declared variable',''); });
+      }
+      if (b.type==='skill'){ (b.tools||[]).forEach(function(t){ if (TK.indexOf(t.kind)<0) line('fail',tag+' tool '+t.ref+' kind "'+t.kind+'" is reserved',''); if (t.kind==='mcp'){ if(!t.connector) line('fail',tag+' mcp tool '+t.ref+' has no connector',''); if(!Array.isArray(t.scopes)||!t.scopes.length) line('warn',tag+' mcp tool '+t.ref+' declares no scopes','Least privilege expects an explicit scope list.'); } }); }
+      if (b.type==='memory'){ if (b.layer!==undefined && LAYER.indexOf(b.layer)<0) line('fail',tag+' layer "'+b.layer+'" is reserved','seed · runtime'); else line('pass',tag+' memory layer: '+(b.layer||'seed (default)'),''); }
+    });
+    // connector surfacing
+    var declaredConn = {}; (m.requires||[]).forEach(function(r){ if(r.connector) declaredConn[r.connector]=r; });
+    bodies.forEach(function(b){ if(b&&b.type==='skill') (b.tools||[]).forEach(function(t){ if(t.kind==='mcp'&&t.connector){ var d=declaredConn[t.connector]; if(!d) line('fail','Skill '+b.id+' uses connector '+t.connector+' not surfaced in manifest.requires[]','§1.6: a deployer gates auth from the manifest.'); else { var missing=(t.scopes||[]).filter(function(s){return (d.scopes||[]).indexOf(s)<0;}); if(missing.length) line('fail','Skill '+b.id+' requests scope '+missing.join(', ')+' on '+t.connector+' beyond manifest.requires[]','Widened capability surface — this would break the skill signature.'); } } }); });
+    // secrets in file
+    var leak = src.match(/(sk-[A-Za-z0-9_-]{8,}|AKIA[0-9A-Z]{12,}|ghp_[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)/);
+    if (leak) line('fail','Literal credential-shaped value in the file: '+leak[1].slice(0,10)+'…','Secrets ride secret:// and connection:// handles. This bundle is non-conforming regardless of signatures.'); else line('pass','No credential-shaped literals in the file','');
+    line('info','Signatures not verified','This reader has no key registry. A Level 2 verifier recomputes digests over the canonical form and checks each sig and the vio_bundle signature.');
+    render(R,fail,warn);
+  }
+  function render(R,fail,warn){
+    var v = fail? '<span style="color:#C9412F">REJECT</span> · '+fail+' failure'+(fail>1?'s':'')+(warn?', '+warn+' warning'+(warn>1?'s':''):'') : (warn? '<span style="color:var(--warn)">ACCEPT WITH WARNINGS</span> · '+warn : '<span style="color:var(--accent-ink)">ACCEPT</span> · Level 1 reader checks pass');
+    var ic={pass:'✓',fail:'✕',warn:'!',info:'·'};
+    document.getElementById('report').innerHTML = '<div class="verdict">'+v+'</div>' + R.map(function(r){ return '<div class="line '+r.k+'"><span class="ico">'+ic[r.k]+'</span><span>'+esc(r.t)+(r.s?'<small>'+esc(r.s)+'</small>':'')+'</span></div>'; }).join('');
+  }
+})();
+</script>
+</body>
+</html>

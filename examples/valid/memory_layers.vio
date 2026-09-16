@@ -1,0 +1,45 @@
+# Both memory layers in one bundle (§1.8). A seed body ships its text; a runtime body
+# ships frontmatter only. Neither carries a sig — memory is integrity-only.
+vio: 1
+manifest:
+  id: agt_notes
+  name: Notetaker
+  version: 0.3.0
+  composition: agent
+  framework: crewai
+  org: example
+  team: docs
+  signer: { certificate_id: cert_example_001, algo_id: 0x04 }
+  created: 2026-09-04T12:00:00Z
+  artifacts:
+    - { id: agent, type: agent,  deploy: runtime, digest: "sha256:1111", sig: "base64" }
+    - { id: seed,  type: memory, deploy: store,   digest: "sha256:2222" }
+    - { id: scratch, type: memory, deploy: store, digest: "sha256:3333" }
+artifacts:
+  - id: agent
+    type: agent
+    content:
+      role: Notetaker
+      goal: Keep durable notes across runs
+      framework: crewai
+      memory: { ref: seed }
+      inputs: []
+  - id: seed
+    type: memory
+    layer: seed
+    content: |
+      ---
+      meta: {id: 01M1NC0WFNSS0WWN1690VY2FR8, schemaVersion: "1"}
+      name: Memory 1
+      description: Persistent memory for agent runs.
+      ---
+      House style: short sentences, no adjectives.
+  - id: scratch
+    type: memory
+    layer: runtime
+    content: |
+      ---
+      meta: {id: 01KYRN79YYQ841RD37EKSMGKK9, schemaVersion: "1"}
+      name: session-notes
+      description: Persistent memory for agent runs.
+      ---

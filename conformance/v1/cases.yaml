@@ -1,0 +1,59 @@
+# Conformance case manifest — format version 1.
+# Each case names a fixture, the level it exercises, the expected outcome and the rule id
+# a conforming implementation must report. Run with: cd tools/vio-lint && npm test
+version: 1
+level: 1          # these cases exercise Level 1 (Reader); Level 2 and 3 suites follow
+cases:
+  - file: examples/valid/minimal_prompt.vio
+    expect: accept
+    note: The smallest conforming bundle — one signed prompt to a registry.
+  - file: examples/valid/agt_research.vio
+    expect: accept
+    note: The specification's worked example (§1.4).
+  - file: examples/valid/memory_layers.vio
+    expect: accept
+    note: Both memory layers, neither carrying a sig (§1.8, §2.1).
+  - file: examples/valid/unsigned_local.vio
+    expect: accept
+    warnings: [missing_signature]
+    note: Signing is optional; a local compile-and-run bundle is valid with a warning (§3).
+  - file: examples/invalid/reserved-deploy-value.vio
+    expect: reject
+    rule: reserved_value
+    section: "1.3"
+  - file: examples/invalid/reserved-memory-layer.vio
+    expect: reject
+    rule: reserved_value
+    section: "1.8"
+  - file: examples/invalid/sig-on-memory.vio
+    expect: reject
+    rule: trust_tier
+    section: "2.1"
+  - file: examples/invalid/model-with-body.vio
+    expect: reject
+    rule: model_body
+    section: "1.7"
+  - file: examples/invalid/scope-beyond-requires.vio
+    expect: reject
+    rule: scope_widening
+    section: "1.6"
+  - file: examples/invalid/literal-credential.vio
+    expect: reject
+    rule: credential_literal
+    section: conformance-invariants
+  - file: examples/invalid/undeclared-slot.vio
+    expect: reject
+    rule: undeclared_variable
+    section: "2.4"
+  - file: examples/invalid/yaml-anchor.vio
+    expect: reject
+    rule: plain_yaml
+    section: "1"
+  - file: examples/invalid/unknown-format-version.vio
+    expect: reject
+    rule: unsupported_version
+    section: "1"
+  - file: examples/invalid/orphan-body.vio
+    expect: reject
+    rule: orphan_body
+    section: "1.3"

@@ -1,0 +1,27 @@
+# INVALID — §1.8: `layer` outside {seed, runtime}. Expect: reject (reserved_value).
+vio: 1
+manifest:
+  id: bad_layer
+  name: Bad Layer
+  version: 0.1.0
+  composition: agent
+  framework: crewai
+  org: example
+  team: docs
+  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
+  created: 2026-09-16T00:00:00Z
+  artifacts:
+    - { id: agent, type: agent,  deploy: runtime, digest: "sha256:1111", sig: "base64" }
+    - { id: mem,   type: memory, deploy: store,   digest: "sha256:2222" }
+artifacts:
+  - id: agent
+    type: agent
+    content: { role: R, goal: G, framework: crewai, memory: { ref: mem } }
+  - id: mem
+    type: memory
+    layer: archive
+    content: |
+      ---
+      name: Memory 1
+      ---
+      text

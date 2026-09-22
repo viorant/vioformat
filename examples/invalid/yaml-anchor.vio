@@ -1,25 +1,12 @@
-# INVALID — §1: the plain-YAML guarantee forbids anchors and aliases. Expect: reject (plain_yaml).
+# YAML anchors and aliases are outside the portable core a .vio restricts itself to.
+# A reader that resolved this would see content no digest covered.
 vio: 1
 manifest: &m
-  id: bad_anchor
+  id: anchored
   name: Anchored
-  version: 0.1.0
-  composition: prompt
-  org: example
-  team: docs
-  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
-  created: 2026-09-16T00:00:00Z
-  artifacts:
-    - { id: p, type: prompt, deploy: registry, digest: "sha256:0000", sig: "base64" }
-artifacts:
-  - id: p
-    type: prompt
-    mode: chat
-    content:
-      system: |
-        Hello {{name}}.
-    variables:
-      - { name: name, type: string, required: true, source: input }
-    bindings:
-      name: input.name
-    note: *m
+  composition: agent
+  framework: crewai
+  created: '2026-09-22T00:00:00.000Z'
+  artifacts: []
+  aliased: *m
+artifacts: []

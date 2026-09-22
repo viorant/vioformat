@@ -1,101 +1,129 @@
-# Field reference
+# Field reference — VIO 1.0
 
-Every key the `.vio` artifact format defines, where it lives, and the values it reserves.
-Machine-readable structural form: [`schema/v1/vio.schema.json`](../../schema/v1/vio.schema.json).
+Every key the `.vio` artifact format defines in version 1, where it lives, and the values it reserves.
+Machine-readable structural form: [`schema/v1/vio.schema.json`](../../schema/v1/vio.schema.json), generated from
+the reference implementation.
+
+**R** marks a required field. Every object is closed: a key not listed here is rejected, not ignored.
 
 ## Top level
 
-| Path | Meaning | Values |
-|---|---|---|
-| `vio` | Format version, an integer. Readers reject versions they do not implement. | `1` |
-| `manifest` | Authoritative metadata, signed as a unit. | |
-| `artifacts` | The artifact bodies. Referenced artifacts have no body here. | |
+| Path | R | Meaning | Values |
+|---|---|---|---|
+| `vio` | ● | Format version, an integer. Readers reject versions they do not implement. | `1` |
+| `manifest` | ● | Authoritative metadata: identity and the artifact index. | |
+| `artifacts` | ● | The artifact bodies. A model entry has none. | |
 
 ## Manifest
 
-| Path | Meaning | Values |
-|---|---|---|
-| `manifest.id` | Package identifier. | |
-| `manifest.name` | Human-readable package name. | |
-| `manifest.version` | Package version. Unrelated to the format version. | semver |
-| `manifest.composition` | What the package is. | `agent` `prompt` `skill` `memory` `model` `bundle` |
-| `manifest.framework` | For agents: the framework the adapter targets. | `crewai` `langchain` `autogen` `claude-sdk` `vercel-ai` `adk` (open set) |
-| `manifest.org` · `manifest.team` | Scope. Drives trust, RBAC and registry namespace. | |
-| `manifest.signer` | Who signed the bundle. | `{ certificate_id, algo_id }` |
-| `manifest.signer.algo_id` | Signature algorithm per Sign. | `0x02` RSA-2048+ECDSA-P256 (default) · `0x04` Ed25519 · `0x03` with Dilithium |
-| `manifest.created` | Creation timestamp. | ISO-8601 UTC |
-| `manifest.artifacts[]` | Authoritative index, one descriptor per artifact. | |
-| `manifest.requires[]` | Cross-artifact and connector dependencies. | `{ ref, digest }` · `{ connector, scopes[], auth }` |
+| Path | R | Meaning | Values |
+|---|---|---|---|
+| `manifest.id` | ● | Bundle identifier. | |
+| `manifest.name` | ● | Human-readable name. | |
+| `manifest.composition` | ● | What the bundle is. | `agent` `prompt` `skill` `memory` `model` `bundle` |
+| `manifest.created` | ● | Creation timestamp. **Quote it.** | ISO-8601 |
+| `manifest.artifacts[]` | ● | Authoritative index, one descriptor per artifact. | |
+| `manifest.framework` | | The framework the adapter targets. **Closed set in 1.0.** | `crewai` `langchain` `autogen` |
+| `manifest.version` | | Optional version label. The reference producer does not set it. | |
+| `manifest.requires[]` | | Credentials and connectors needed at deploy. | |
+| `manifest.org` · `manifest.team` | | Reserved; no org concept in 1.0. | |
+| `manifest.signer` | | Reserved; signing is not active. | `{ certificate_id, algo_id }` |
 
 ## Artifact index entry
 
-| Path | Meaning | Values |
-|---|---|---|
-| `artifacts[].id` | Bundle-local identifier siblings reference. | |
-| `artifacts[].type` | Artifact type. | `prompt` `skill` `memory` `model` `agent` |
-| `artifacts[].kind` | Sub-kind; for skills only today. | `declarative` `executable` |
-| `artifacts[].runtime` | Executable skill runtime. | `python` `js` |
-| `artifacts[].entry` | Executable skill entrypoint within its file tree. | e.g. `scripts/run.py` |
-| `artifacts[].deploy` | Declared destination and mode. | `runtime` `runtime/standalone` `registry` `store` |
-| `artifacts[].digest` | sha256 of the artifact's canonical content. | `sha256:…` |
-| `artifacts[].sig` | Per-artifact signature. Authored artifacts only. | base64 |
-| `artifacts[].ref` | External reference. Referenced artifacts only. | `model://…` `mem://…` git ref · OCI image |
+| Path | R | Meaning | Values |
+|---|---|---|---|
+| `artifacts[].id` | ● | Bundle-local identifier; matches the body's `id`. | |
+| `artifacts[].type` | ● | Artifact type. | `prompt` `skill` `memory` `model` `agent` |
+| `artifacts[].deploy` | ● | Declared destination. | `runtime` `runtime/standalone` `registry` `store` |
+| `artifacts[].digest` | ● | Digest of the body's canonical subject (§2.2). | `sha256:<hex>` |
+| `artifacts[].sig` | | **Reserved.** Authored types only; reported unverified. Rejected on memory and model. | |
+| `artifacts[].ref` | | Optional external locator. Required on a model entry. | |
+| `artifacts[].kind` | | Skill sub-kind. | `declarative` `executable` |
+| `artifacts[].runtime` | | Executable skill runtime. | `python` `js` |
+| `artifacts[].entry` | | Executable skill entrypoint. | e.g. `scripts/run.py` |
 
-## Model entry
+Model entries additionally accept `engine`, `quantization`, `context_length` and `served_as` — reserved in 1.0.
 
-| Path | Meaning | Values |
-|---|---|---|
-| `artifacts[].engine` | Inference runtime; selects the base image flavor. | `vllm` `llama.cpp` `ollama` … |
-| `artifacts[].quantization` | Quantization of the served weights. Optional. | e.g. `q4_k_m` |
-| `artifacts[].context_length` | Served context window. Optional. | integer |
-| `artifacts[].served_as` | The name the agent calls the model by. Optional. | |
-| `artifacts[].params` | Recommended decode parameters. Overridden by agent, then run. | `{ temperature, max_tokens, top_p, stop }` |
+## `manifest.requires[]`
+
+Two shapes. The connector shape is the one 1.0 uses; **every field is required**.
+
+| Path | R | Meaning | Values |
+|---|---|---|---|
+| `connector` | ● | MCP server URL for `kind: connector`; provider name for `kind: model`. | |
+| `scopes` | ● | Scopes to request. `[]` when none. | |
+| `auth` | ● | Which credential is needed. | `oauth` `api_key` |
+| `kind` | ● | Entry discriminator. **Independent of `auth`.** | `model` `connector` |
+| `tools` | ● | Exact tool names the agent may call. Never a wildcard. `[]` for `kind: model`. | |
+
+The second shape, `{ ref, digest }`, pins an in-bundle model artifact — reserved in 1.0.
 
 ## Prompt body
 
-| Path | Meaning | Values |
-|---|---|---|
-| `prompt.mode` | How the adapter assembles the prompt. | `chat` `single_shot` |
-| `prompt.content.system` · `.user` | Sections, templates with `{{vars}}`. Inside the signature. | |
-| `prompt.variables[]` | Dynamic-slot schema. Inside the signature. | `{ name, type, required, source, default, values }` |
-| `variables[].source` | Where a value comes from at run. | `input` `env` `task` `connector` `secret` `static` |
-| `prompt.bindings` | Artifact-level default binding of each variable. Overridable by an agent. | `name: input.name` · `key: secret://org/team/key` |
+| Path | R | Meaning | Values |
+|---|---|---|---|
+| `mode` | ● | How the adapter assembles the prompt. | `chat` `single_shot` |
+| `content.system` | ● | System prompt text. | |
+| `content.user` | ● | User prompt template; may contain `{{vars}}`. | |
+| `variables[]` | | Dynamic-slot schema. | `{ name, type, required, source, default?, values?, description? }` |
+| `variables[].type` | ● | Value type. | `string` `number` `boolean` `enum` `date` |
+| `variables[].source` | ● | Where the value comes from at run. | `input` `env` `task` `connector` `secret` `static` |
+| `bindings` | | Name-to-value bindings. | |
 
 ## Skill body
 
-| Path | Meaning | Values |
-|---|---|---|
-| `skill.content` | Single-file skill body — shorthand for a one-file tree. | block scalar |
-| `skill.files` | File tree keyed by relative path. Paths are inside the signature. | map |
-| `skill.entry` | Entrypoint path within `files`. | |
-| `skill.tools[]` | Declared capability surface. Inside the signature. | `{ ref, kind, connector?, scopes? }` |
-| `tools[].kind` | Tool source. | `viorant` (native) · `mcp` (connector, OAuth) |
-| `tools[].scopes` | Least-privilege scope list for an MCP tool. | e.g. `[search.read]` |
+| Path | R | Meaning | Values |
+|---|---|---|---|
+| `content` | ◐ | Single-file skill: the full `SKILL.md`. | block scalar |
+| `files` | ◐ | Multi-file skill: path → content. Must include `SKILL.md`. | map |
+| `entry` | | Entrypoint path within `files`. | |
+| `tools[]` | | Declared capability surface. Inside the digest subject. | |
+| `tools[].kind` | ● | Tool source. | `viorant` `mcp` |
+| `tools[].connector` · `.scopes` | ● | Required on an `mcp` tool. | |
+
+◐ — `content` or `files`; at least one. JSON Schema cannot express this; a conforming reader enforces it.
 
 ## Agent body
 
-| Path | Meaning |
-|---|---|
-| `agent.content.role` · `.goal` | Framework-neutral role and goal. |
-| `agent.content.model` | Sibling model reference plus agent-level decode params: `{ ref, params }`. |
-| `agent.content.prompts[]` · `.skills[]` · `.memory` | Sibling references; skills accept a `deploy` override. |
-| `agent.content.inputs[]` | Runtime input contract. A run omitting a required input fails before execution. |
-| `agent.content.bindings` | Agent-level override of a prompt's bindings, recorded in the agent's signed content. |
-| `agent.content.output.expected` | Prose expected output. Prompt-shaping. |
-| `agent.content.output.schema` | Typed output contract (JSON Schema). Validates the result, wires `source: task`. |
+| Path | R | Meaning |
+|---|---|---|
+| `content.model` | ● | `{ ref, params? }`. `ref` is `provider://{provider}/{model_id}`. |
+| `content.prompts[]` | ● | Prompt references. The first is the persona. |
+| `content.skills[]` | ● | Skill references; `[]` when none. |
+| `content.inputs[]` | ● | Runtime input contract: `{ name, type, required, description? }`. |
+| `content.role` · `.goal` | | Framework-neutral role and goal. |
+| `content.framework` | | The framework the adapter targets. |
+| `content.memory` | | `{ read[], write[] }` — `write` holds at most one id. |
+| `content.bindings` | | Agent-level override of a prompt's bindings. |
+| `content.output.expected` | | Prose expected output; shapes prompt assembly. |
+| `content.output.schema` | | Typed output contract (JSON Schema). |
 
 ## Memory body
 
-| Path | Meaning | Values |
-|---|---|---|
-| `memory.layer` | Which memory layer the body is. Not part of the digest subject. | `seed` (default) `runtime` |
-| `memory.content` | Inline `.memory.md` text with frontmatter. Digest covers `{ content }` only. | block scalar |
+| Path | R | Meaning | Values |
+|---|---|---|---|
+| `content` | ● | Raw `.memory.md` text, verbatim. Max 100,000 characters. | block scalar |
+| `layer` | | Which layer this body is. **Outside the digest subject.** | `seed` (default) `runtime` |
 
 ## URI schemes
 
-| Scheme | Meaning |
+| Scheme | State | Meaning |
+|---|---|---|
+| `provider://{provider}/{model_id}` | **1.0** | A hosted model. The credential is resolved at deploy and never enters the bundle. |
+| `model://org/name` | reserved | Self-hosted weights. Not part of 1.0. |
+| `mem://org/team/name` | reserved | A memory store reference. 1.0 memory ships inline. |
+| `secret://org/team/key` | reserved | A secret resolved at run. |
+| `connection://org/team/connector` | reserved | A control-plane connection handle. |
+
+## Digest subject, per type
+
+The body minus `id` and `type`, canonicalized per RFC 8785. Absent keys stay absent.
+
+| Type | Subject |
 |---|---|
-| `model://org/name` | Self-hosted weights, resolved on the target at deploy and digest-checked. |
-| `mem://org/team/name` | A memory store reference. |
-| `secret://org/team/key` | A secret reference resolved at run. The value never enters the file. |
-| `connection://org/team/connector` | A control-plane connection handle for connector credentials at run. |
+| `prompt` | `mode`, `content`, plus `variables` / `bindings` when present |
+| `skill` | `entry`, `content`, `files`, `tools` — each when present |
+| `agent` | `content` |
+| `memory` | `content` only — **`layer` excluded** |
+| `model` | No body; the entry's `digest` is carried as supplied |

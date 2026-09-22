@@ -99,6 +99,11 @@ capability the bundle does not declare is a bundle that needs re-authoring, not 
 
 ## 1.9.6 Compatibility
 
+> **Note (2026-09-22).** This proposal predates VIO 1.0 and is baselined on revision 4. Its compatibility argument
+> below — that optional fields are additive and safe — does **not** hold: every object in a `.vio` is closed, so a
+> bundle carrying `provider` or `targets` is *rejected* by every 1.0 reader. The proposal therefore targets
+> **`vio: 2`**, not a revision of version 1. See specification §7 and errata `E-005`.
+
 `provider` and `targets` are optional; a bundle omitting them behaves exactly as in revision 4. `provider` sits on
 the memory body and, like `layer` (§1.8), is **outside the memory digest subject** — a memory artifact digests
 `{ content }` only — so existing `manifest.artifacts[].digest` values stay valid and no re-export is forced.

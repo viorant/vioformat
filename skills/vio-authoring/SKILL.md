@@ -72,7 +72,8 @@ The linter implements Level 1 (Reader) and nothing beyond it. It never reports a
 
 ## Worked references
 
-- [`examples/valid/agt_research.vio`](../../examples/valid/agt_research.vio) — the specification's full example
+- [`examples/valid/skill_tree.vio`](../../examples/valid/skill_tree.vio) — a prompt, a declarative skill and an agent
+- [`examples/valid/memory_layers.vio`](../../examples/valid/memory_layers.vio) — both memory layers and the agent binding
 - [`examples/valid/minimal_prompt.vio`](../../examples/valid/minimal_prompt.vio) — smallest conforming bundle
 - [`examples/valid/memory_layers.vio`](../../examples/valid/memory_layers.vio) — both memory layers
 - [`examples/invalid/`](../../examples/invalid/) — one violation per file, each citing the section it breaks

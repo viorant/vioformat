@@ -102,8 +102,13 @@ Each row in `manifest.artifacts[]` is the authoritative descriptor for one artif
 
 ### 1.4 Worked example
 
-See [`examples/valid/agt_research.vio`](../../examples/valid/agt_research.vio) — a CrewAI research agent bundling a
-signed prompt, one declarative and one executable skill, a memory reference and a self-hosted model reference.
+See [`examples/valid/skill_tree.vio`](../../examples/valid/skill_tree.vio) — a CrewAI agent bundling a prompt and a
+declarative skill — and [`examples/valid/memory_layers.vio`](../../examples/valid/memory_layers.vio) for both memory
+layers with the agent's read/write binding.
+
+> **Note (2026-09-22).** The fixtures are now the bundles the reference implementation actually produces, and the
+> prose in this document has not yet been re-based onto them. Where the two disagree, the fixtures and
+> [`schema/v1/vio.schema.json`](../../schema/v1/vio.schema.json) are correct and this text is stale.
 
 Three properties of this design:
 

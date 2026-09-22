@@ -2,128 +2,959 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://vioformat.org/schema/v1/vio.schema.json",
   "title": ".vio artifact bundle",
-  "description": "Structural schema for a .vio bundle, format version 1. NON-NORMATIVE: the specification in spec/v1/index.md is authoritative. JSON Schema cannot express the format's cross-cutting rules (trust tiers, connector-scope surfacing, digest subjects, credential invariants) — those are checked by tools/vio-lint and by the conformance suite.",
-  "type": "object",
-  "required": ["vio", "manifest"],
-  "additionalProperties": false,
-  "properties": {
-    "vio": { "type": "integer", "enum": [1], "description": "Format version. A reader rejects a version it does not implement." },
-    "manifest": { "$ref": "#/$defs/manifest" },
-    "artifacts": { "type": "array", "items": { "$ref": "#/$defs/body" } }
+  "description": "Structural schema for a .vio bundle, format version 1. NON-NORMATIVE: the specification in spec/v1/index.md is authoritative. GENERATED — do not edit by hand; run `node tools/sync-schema.mjs`. Derived from the reference implementation's bundle schema, so this file and the deployed reader cannot disagree. JSON Schema cannot express the format’s cross-cutting rules (trust tiers, digest subjects, connector-scope surfacing, credential invariants); those are checked by tools/vio-lint and by the conformance suite.",
+  "x-generated-from": {
+    "package": "@viorant/shared",
+    "version": "0.0.82",
+    "source": "schemas/vio-bundle.schema.json"
   },
-  "$defs": {
-    "digest": { "type": "string", "pattern": "^sha256:[0-9a-fA-F]+$" },
+  "type": "object",
+  "properties": {
+    "vio": {
+      "type": "number",
+      "const": 1,
+      "description": "Format version. Always `1`."
+    },
     "manifest": {
       "type": "object",
-      "required": ["id", "name", "version", "composition", "signer", "created", "artifacts"],
       "properties": {
-        "id": { "type": "string" },
-        "name": { "type": "string" },
-        "version": { "type": "string", "description": "semver; unrelated to the format version" },
-        "composition": { "enum": ["agent", "prompt", "skill", "memory", "model", "bundle"] },
-        "framework": { "type": ["string", "null"], "description": "Open set; adapters are listed on the Ecosystem page. Known: crewai, langchain, autogen, claude-sdk, vercel-ai, adk" },
-        "org": { "type": "string" },
-        "team": { "type": "string" },
-        "created": { "type": "string", "format": "date-time" },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Bundle id. For an agent bundle, conventionally the agent artifact's id."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Human-readable name of the bundle."
+        },
+        "version": {
+          "description": "Optional version label.",
+          "type": "string"
+        },
+        "composition": {
+          "type": "string",
+          "enum": [
+            "agent",
+            "prompt",
+            "skill",
+            "memory",
+            "model",
+            "bundle"
+          ],
+          "description": "What the bundle as a whole is. A deployable agent is `agent`: exactly one agent artifact plus the prompts, skills and memory it references."
+        },
+        "framework": {
+          "description": "Agent framework the runtime executes the agent with. Required to serve an agent bundle.",
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "crewai",
+                "langchain",
+                "autogen"
+              ],
+              "description": "Agent framework the runtime executes the agent with."
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "org": {
+          "description": "Reserved: owning organisation.",
+          "type": "string"
+        },
+        "team": {
+          "description": "Reserved: owning team.",
+          "type": "string"
+        },
         "signer": {
           "type": "object",
-          "required": ["certificate_id", "algo_id"],
           "properties": {
-            "certificate_id": { "type": "string" },
-            "algo_id": { "description": "0x02 RSA-2048+ECDSA-P256 (default), 0x03 with Dilithium, 0x04 Ed25519" }
-          }
+            "certificate_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Signing certificate identifier."
+            },
+            "algo_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Signature algorithm identifier."
+            }
+          },
+          "required": [
+            "certificate_id",
+            "algo_id"
+          ],
+          "additionalProperties": false,
+          "description": "Reserved for bundle signing, which is not active yet."
         },
-        "artifacts": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/indexEntry" } },
-        "requires": {
+        "created": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Creation timestamp, ISO-8601."
+        },
+        "artifacts": {
           "type": "array",
           "items": {
             "oneOf": [
-              { "type": "object", "required": ["ref", "digest"], "properties": { "ref": { "type": "string" }, "digest": { "$ref": "#/$defs/digest" } } },
-              { "type": "object", "required": ["connector"], "properties": { "connector": { "type": "string" }, "scopes": { "type": "array", "items": { "type": "string" } }, "auth": { "type": "string" } } }
-            ]
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Artifact id. Must equal the `id` of this artifact's body in the top-level `artifacts` list; `ref` fields elsewhere point at it."
+                  },
+                  "deploy": {
+                    "type": "string",
+                    "enum": [
+                      "runtime",
+                      "runtime/standalone",
+                      "registry",
+                      "store"
+                    ],
+                    "description": "Where this artifact is delivered when the bundle is deployed."
+                  },
+                  "digest": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "`sha256:<hex>` digest of the artifact body: SHA-256 of the RFC 8785 (JCS) canonical JSON of the body without its `id` and `type`. Verified before deploy; a mismatch rejects the bundle."
+                  },
+                  "sig": {
+                    "description": "Reserved signature. Signing is not active; a present signature is reported as unverified.",
+                    "type": "string"
+                  },
+                  "ref": {
+                    "description": "Optional external locator for the artifact.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "prompt",
+                    "description": "Discriminator: a prompt artifact."
+                  }
+                },
+                "required": [
+                  "id",
+                  "deploy",
+                  "digest",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": "Index entry for a prompt body."
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Artifact id. Must equal the `id` of this artifact's body in the top-level `artifacts` list; `ref` fields elsewhere point at it."
+                  },
+                  "deploy": {
+                    "type": "string",
+                    "enum": [
+                      "runtime",
+                      "runtime/standalone",
+                      "registry",
+                      "store"
+                    ],
+                    "description": "Where this artifact is delivered when the bundle is deployed."
+                  },
+                  "digest": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "`sha256:<hex>` digest of the artifact body: SHA-256 of the RFC 8785 (JCS) canonical JSON of the body without its `id` and `type`. Verified before deploy; a mismatch rejects the bundle."
+                  },
+                  "sig": {
+                    "description": "Reserved signature. Signing is not active; a present signature is reported as unverified.",
+                    "type": "string"
+                  },
+                  "ref": {
+                    "description": "Optional external locator for the artifact.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "skill",
+                    "description": "Discriminator: a skill artifact."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "declarative",
+                      "executable"
+                    ],
+                    "description": "`declarative`: instructions only (a SKILL.md). `executable`: ships code that runs in `runtime`."
+                  },
+                  "runtime": {
+                    "type": "string",
+                    "enum": [
+                      "python",
+                      "js"
+                    ],
+                    "description": "Language runtime for an executable skill."
+                  },
+                  "entry": {
+                    "description": "Entry file of an executable skill.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "deploy",
+                  "digest",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": "Index entry for a skill body."
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Artifact id. Must equal the `id` of this artifact's body in the top-level `artifacts` list; `ref` fields elsewhere point at it."
+                  },
+                  "deploy": {
+                    "type": "string",
+                    "enum": [
+                      "runtime",
+                      "runtime/standalone",
+                      "registry",
+                      "store"
+                    ],
+                    "description": "Where this artifact is delivered when the bundle is deployed."
+                  },
+                  "digest": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "`sha256:<hex>` digest of the artifact body: SHA-256 of the RFC 8785 (JCS) canonical JSON of the body without its `id` and `type`. Verified before deploy; a mismatch rejects the bundle."
+                  },
+                  "sig": {
+                    "description": "Reserved signature. Signing is not active; a present signature is reported as unverified.",
+                    "type": "string"
+                  },
+                  "ref": {
+                    "description": "Optional external locator for the artifact.",
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "agent",
+                    "description": "Discriminator: the agent artifact."
+                  }
+                },
+                "required": [
+                  "id",
+                  "deploy",
+                  "digest",
+                  "type"
+                ],
+                "additionalProperties": false,
+                "description": "Index entry for the agent body."
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Memory artifact id (a ULID). Must equal the `id` of its body, and is what agent memory bindings reference."
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "memory",
+                    "description": "Discriminator: a memory artifact."
+                  },
+                  "deploy": {
+                    "type": "string",
+                    "enum": [
+                      "runtime",
+                      "runtime/standalone",
+                      "registry",
+                      "store"
+                    ],
+                    "description": "Where this artifact is delivered when the bundle is deployed."
+                  },
+                  "digest": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "`sha256:<hex>` digest of the memory body's `content`, computed the same way as other artifact digests. Integrity only; memory is never signed."
+                  },
+                  "ref": {
+                    "description": "Optional external locator for the memory store.",
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "deploy",
+                  "digest"
+                ],
+                "additionalProperties": false,
+                "description": "Index entry for a memory body."
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Model artifact id."
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "model",
+                    "description": "Discriminator: a self-hosted model artifact."
+                  },
+                  "deploy": {
+                    "type": "string",
+                    "enum": [
+                      "runtime",
+                      "runtime/standalone",
+                      "registry",
+                      "store"
+                    ],
+                    "description": "Where this artifact is delivered when the bundle is deployed."
+                  },
+                  "digest": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Digest of the model weights, carried as supplied and not recomputed."
+                  },
+                  "ref": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Locator of the model weights on the deploy target."
+                  },
+                  "engine": {
+                    "description": "Inference engine that serves the weights.",
+                    "type": "string"
+                  },
+                  "quantization": {
+                    "description": "Quantization of the weights.",
+                    "type": "string"
+                  },
+                  "context_length": {
+                    "description": "Context window, in tokens.",
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "served_as": {
+                    "description": "Model name the engine serves the weights under.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "type",
+                  "deploy",
+                  "digest",
+                  "ref"
+                ],
+                "additionalProperties": false,
+                "description": "Index entry for self-hosted model weights. A hosted LLM (for example an OpenAI model) is not a model artifact: declare its credential in `manifest.requires` with `kind: model`."
+              }
+            ],
+            "description": "One manifest index entry per artifact, discriminated by `type`."
+          },
+          "description": "Index of every artifact in the bundle, each with its digest."
+        },
+        "requires": {
+          "description": "Credentials and MCP connectors the agent needs. Supplied at deploy time, never embedded in the bundle.",
+          "type": "array",
+          "items": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "ref": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Ref of the required model artifact."
+                  },
+                  "digest": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Digest the required model artifact must carry."
+                  }
+                },
+                "required": [
+                  "ref",
+                  "digest"
+                ],
+                "additionalProperties": false,
+                "description": "A dependency on a model artifact, pinned by digest."
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "connector": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "For `kind: connector`, the MCP server URL (for example `https://mcp.notion.com/mcp`). For `kind: model`, the model provider (for example `openai`)."
+                  },
+                  "scopes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "OAuth scopes to request. `[]` when none are needed or `auth` is `api_key`."
+                  },
+                  "auth": {
+                    "type": "string",
+                    "enum": [
+                      "oauth",
+                      "api_key"
+                    ],
+                    "description": "Credential the dependency needs: `oauth` (the user authorises in a browser) or `api_key`. Credentials are supplied at deploy time and never stored in the bundle."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "model",
+                      "connector"
+                    ],
+                    "description": "`model`: the credential for the hosted LLM the agent runs on. `connector`: an MCP server whose tools the agent calls. Independent of `auth`."
+                  },
+                  "tools": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Exact names of the tools the agent may call on this connector. Never a wildcard. `[]` for `kind: model`."
+                  }
+                },
+                "required": [
+                  "connector",
+                  "scopes",
+                  "auth",
+                  "kind",
+                  "tools"
+                ],
+                "additionalProperties": false,
+                "description": "A credential the deployed agent needs: the hosted LLM's key, or an MCP connector."
+              }
+            ],
+            "description": "An external dependency the bundle needs at deploy time."
           }
         }
-      }
-    },
-    "indexEntry": {
-      "type": "object",
-      "required": ["id", "type", "deploy", "digest"],
-      "properties": {
-        "id": { "type": "string" },
-        "type": { "enum": ["prompt", "skill", "memory", "model", "agent"] },
-        "kind": { "enum": ["declarative", "executable"] },
-        "runtime": { "enum": ["python", "js"] },
-        "entry": { "type": "string" },
-        "deploy": { "enum": ["runtime", "runtime/standalone", "registry", "store"] },
-        "digest": { "$ref": "#/$defs/digest" },
-        "sig": { "type": "string", "description": "Authored artifacts only (prompt, skill, agent). See spec §2.1." },
-        "ref": { "type": "string" },
-        "engine": { "type": "string", "description": "model only" },
-        "quantization": { "type": "string" },
-        "context_length": { "type": "integer" },
-        "served_as": { "type": "string" },
-        "params": { "type": "object" }
       },
-      "allOf": [
-        {
-          "if": { "properties": { "type": { "const": "model" } }, "required": ["type"] },
-          "then": { "required": ["ref"], "not": { "required": ["sig"] } }
-        },
-        {
-          "if": { "properties": { "type": { "const": "memory" } }, "required": ["type"] },
-          "then": { "not": { "required": ["sig"] } }
-        },
-        {
-          "if": { "properties": { "type": { "const": "skill" }, "kind": { "const": "executable" } }, "required": ["type", "kind"] },
-          "then": { "required": ["runtime"] }
-        }
-      ]
+      "required": [
+        "id",
+        "name",
+        "composition",
+        "created",
+        "artifacts"
+      ],
+      "additionalProperties": false,
+      "description": "Bundle manifest: identity, the artifact index with digests, and external requirements."
     },
-    "variable": {
-      "type": "object",
-      "required": ["name", "source"],
-      "properties": {
-        "name": { "type": "string" },
-        "type": { "type": "string" },
-        "required": { "type": "boolean" },
-        "source": { "enum": ["input", "env", "task", "connector", "secret", "static"] },
-        "default": {},
-        "values": { "type": "array" }
-      }
-    },
-    "tool": {
-      "type": "object",
-      "required": ["ref", "kind"],
-      "properties": {
-        "ref": { "type": "string" },
-        "kind": { "enum": ["viorant", "mcp"] },
-        "connector": { "type": "string" },
-        "scopes": { "type": "array", "items": { "type": "string" } }
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Prompt artifact id; matches its manifest index entry."
+              },
+              "type": {
+                "type": "string",
+                "const": "prompt",
+                "description": "Discriminator: a prompt body."
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "chat",
+                  "single_shot"
+                ],
+                "description": "`single_shot`: one request and one response. `chat`: a multi-turn conversation."
+              },
+              "content": {
+                "type": "object",
+                "properties": {
+                  "system": {
+                    "type": "string",
+                    "description": "System prompt text."
+                  },
+                  "user": {
+                    "type": "string",
+                    "description": "User prompt template. May contain `{{variable}}` placeholders."
+                  }
+                },
+                "required": [
+                  "system",
+                  "user"
+                ],
+                "additionalProperties": false,
+                "description": "The prompt text."
+              },
+              "variables": {
+                "description": "Variables the prompt uses.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Variable name, used as `{{name}}` in prompt content."
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "string",
+                        "number",
+                        "boolean",
+                        "enum",
+                        "date"
+                      ],
+                      "description": "Value type."
+                    },
+                    "required": {
+                      "type": "boolean",
+                      "description": "Whether a value must be supplied."
+                    },
+                    "source": {
+                      "type": "string",
+                      "enum": [
+                        "input",
+                        "env",
+                        "task",
+                        "connector",
+                        "secret",
+                        "static"
+                      ],
+                      "description": "Where the variable's value comes from at run time. `input` values are supplied by whoever runs the deployed agent."
+                    },
+                    "default": {
+                      "description": "Value used when none is supplied.",
+                      "type": "string"
+                    },
+                    "values": {
+                      "description": "Allowed values when `type` is `enum`.",
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "description": {
+                      "description": "What the variable is for.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "type",
+                    "required",
+                    "source"
+                  ],
+                  "additionalProperties": false,
+                  "description": "A prompt variable."
+                }
+              },
+              "bindings": {
+                "description": "Optional name-to-value bindings.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "mode",
+              "content"
+            ],
+            "additionalProperties": false,
+            "description": "A prompt. The agent's first prompt is its persona."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Skill artifact id; matches its manifest index entry."
+              },
+              "type": {
+                "type": "string",
+                "const": "skill",
+                "description": "Discriminator: a skill body."
+              },
+              "entry": {
+                "description": "Entry file of an executable skill.",
+                "type": "string"
+              },
+              "content": {
+                "description": "Single-file skill: the full SKILL.md text, starting with YAML frontmatter that has `name` (lowercase, hyphenated) and `description`.",
+                "type": "string"
+              },
+              "files": {
+                "description": "Multi-file skill: file path to file content. Must include `SKILL.md`.",
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "tools": {
+                "description": "Tools the skill uses.",
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ref": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Name of a built-in Viorant tool."
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "viorant",
+                          "description": "Discriminator: a built-in Viorant tool."
+                        }
+                      },
+                      "required": [
+                        "ref",
+                        "kind"
+                      ],
+                      "additionalProperties": false,
+                      "description": "A built-in Viorant tool."
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "ref": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Tool name on the MCP server."
+                        },
+                        "kind": {
+                          "type": "string",
+                          "const": "mcp",
+                          "description": "Discriminator: a tool served by an MCP connector."
+                        },
+                        "connector": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "The connector that serves the tool."
+                        },
+                        "scopes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "OAuth scopes the tool needs."
+                        }
+                      },
+                      "required": [
+                        "ref",
+                        "kind",
+                        "connector",
+                        "scopes"
+                      ],
+                      "additionalProperties": false,
+                      "description": "A tool served by an MCP connector."
+                    }
+                  ],
+                  "description": "A tool a skill uses."
+                }
+              }
+            },
+            "required": [
+              "id",
+              "type"
+            ],
+            "additionalProperties": false,
+            "description": "A skill. Provide `content` (a single SKILL.md) or `files` (a path-to-content map); at least one is required. JSON Schema cannot express that rule, so a generic validator will not enforce it; the Viorant parser does."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Agent artifact id; matches its manifest index entry."
+              },
+              "type": {
+                "type": "string",
+                "const": "agent",
+                "description": "Discriminator: the agent body."
+              },
+              "content": {
+                "type": "object",
+                "properties": {
+                  "role": {
+                    "description": "The agent's role.",
+                    "type": "string"
+                  },
+                  "goal": {
+                    "description": "The agent's goal.",
+                    "type": "string"
+                  },
+                  "framework": {
+                    "type": "string",
+                    "enum": [
+                      "crewai",
+                      "langchain",
+                      "autogen"
+                    ],
+                    "description": "Agent framework the runtime executes the agent with."
+                  },
+                  "model": {
+                    "type": "object",
+                    "properties": {
+                      "ref": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": "Model ref, `provider://{provider}/{model_id}`."
+                      },
+                      "params": {
+                        "description": "Provider parameters, for example `temperature`.",
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "ref"
+                    ],
+                    "additionalProperties": false,
+                    "description": "The LLM the agent runs on. Declare its credential in `manifest.requires` with `kind: model`."
+                  },
+                  "prompts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ref": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Id of a prompt artifact."
+                        }
+                      },
+                      "required": [
+                        "ref"
+                      ],
+                      "additionalProperties": false,
+                      "description": "A prompt reference."
+                    },
+                    "description": "Prompt artifact references. At least one is required; the first is the agent's persona."
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ref": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Id of a skill artifact."
+                        },
+                        "deploy": {
+                          "description": "Reserved: deploy the skill standalone.",
+                          "type": "string",
+                          "enum": [
+                            "standalone"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "ref"
+                      ],
+                      "additionalProperties": false,
+                      "description": "A skill reference."
+                    },
+                    "description": "Skill artifact references. `[]` for an agent without skills."
+                  },
+                  "memory": {
+                    "type": "object",
+                    "properties": {
+                      "read": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+                        },
+                        "description": "Ids (ULIDs) of memory artifacts the agent reads."
+                      },
+                      "write": {
+                        "maxItems": 1,
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+                        },
+                        "description": "Id (ULID) of the single memory artifact the agent writes to, or `[]`."
+                      }
+                    },
+                    "required": [
+                      "read",
+                      "write"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Which memory artifacts the agent reads and writes."
+                  },
+                  "inputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "description": "Input name. Callers of the deployed agent send it as a key in the run request's JSON body."
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "enum",
+                            "date"
+                          ],
+                          "description": "Value type."
+                        },
+                        "required": {
+                          "type": "boolean",
+                          "description": "Whether the caller must supply it."
+                        },
+                        "description": {
+                          "description": "What the input is for.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "type",
+                        "required"
+                      ],
+                      "additionalProperties": false,
+                      "description": "A field supplied when the deployed agent is run."
+                    },
+                    "description": "Fields a caller supplies when running the deployed agent."
+                  },
+                  "bindings": {
+                    "description": "Optional name-to-value bindings.",
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "output": {
+                    "description": "Optional expectation for the agent's output.",
+                    "type": "object",
+                    "properties": {
+                      "expected": {
+                        "description": "Plain-language description of the expected output.",
+                        "type": "string"
+                      },
+                      "schema": {
+                        "description": "JSON Schema of the expected output.",
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "model",
+                  "prompts",
+                  "skills",
+                  "inputs"
+                ],
+                "additionalProperties": false,
+                "description": "The agent definition."
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "content"
+            ],
+            "additionalProperties": false,
+            "description": "The agent. A deployable bundle has exactly one."
+          },
+          {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Memory artifact id (a ULID); matches its manifest index entry."
+              },
+              "type": {
+                "type": "string",
+                "const": "memory",
+                "description": "Discriminator: a memory body."
+              },
+              "content": {
+                "type": "string",
+                "maxLength": 100000,
+                "description": "Raw `.memory.md` text (frontmatter and body), verbatim. At most 100,000 characters."
+              },
+              "layer": {
+                "default": "seed",
+                "description": "`seed`: curated content shipped with the agent (the default). `runtime`: the agent's own scratch.",
+                "type": "string",
+                "enum": [
+                  "seed",
+                  "runtime"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "content"
+            ],
+            "additionalProperties": false,
+            "description": "An inlined memory seed."
+          }
+        ],
+        "description": "An artifact body, discriminated by `type`."
       },
-      "if": { "properties": { "kind": { "const": "mcp" } }, "required": ["kind"] },
-      "then": { "required": ["connector"] }
-    },
-    "body": {
-      "type": "object",
-      "required": ["id"],
-      "properties": {
-        "id": { "type": "string" },
-        "type": { "enum": ["prompt", "skill", "memory", "model", "agent"] },
-        "mode": { "enum": ["chat", "single_shot"], "description": "prompt only" },
-        "layer": { "enum": ["seed", "runtime"], "description": "memory only; omitted means seed. Not part of the digest subject." },
-        "entry": { "type": "string" },
-        "files": { "type": "object", "additionalProperties": { "type": "string" } },
-        "tools": { "type": "array", "items": { "$ref": "#/$defs/tool" } },
-        "variables": { "type": "array", "items": { "$ref": "#/$defs/variable" } },
-        "bindings": { "type": "object" },
-        "content": {}
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "type": { "const": "model" } }, "required": ["type"] },
-          "then": { "not": { "anyOf": [ { "required": ["content"] }, { "required": ["files"] } ] } }
-        }
-      ]
+      "description": "Artifact bodies. Every prompt, skill, agent and memory index entry has exactly one; model entries have none."
     }
-  }
+  },
+  "required": [
+    "vio",
+    "manifest",
+    "artifacts"
+  ],
+  "additionalProperties": false
 }

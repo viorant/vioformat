@@ -1,13 +1,20 @@
 {
   "name": "@vio/lint",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Reference Level 1 linter for the .vio artifact format",
   "license": "SEE LICENSE IN ../../LICENSE",
   "type": "commonjs",
   "bin": { "vio-lint": "./index.js" },
   "main": "lint.js",
-  "files": ["index.js", "lint.js", "rules.js", "README.md"],
-  "scripts": { "test": "node test/run.js" },
-  "dependencies": { "js-yaml": "^4.1.0" },
+  "files": ["index.js", "lint.js", "rules.js", "digest.js", "README.md"],
+  "scripts": {
+    "test": "node test/run.js && node test/parity.js",
+    "conformance": "node test/run.js",
+    "parity": "node test/parity.js"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "js-yaml": "^4.1.0"
+  },
   "engines": { "node": ">=18" }
 }

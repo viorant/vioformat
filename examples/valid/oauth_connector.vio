@@ -1,4 +1,7 @@
-# A literal credential in a body — credentials ride connection:// and secret:// handles.
+# Canonical .vio example (VIOR-930). Schema: @viorant/shared/vio-bundle.schema.json
+# Every digest is real: sha256 of the RFC 8785 canonical JSON of the body without `id` and `type`.
+# Edit a body and its digest must be recomputed, or deploy rejects the bundle.
+# An agent that calls an OAuth MCP connector. The user authorises Notion at deploy time; no token is ever stored in the bundle.
 vio: 1
 manifest:
   id: notion-answerer
@@ -9,7 +12,7 @@ manifest:
   artifacts:
     - id: notion-answerer-prompt
       deploy: registry
-      digest: sha256:d03b7173cd6fc21b0e090890e2b10fc3cffd1e702157cae3dd08d367d39e44ea
+      digest: sha256:87a2df4c6166fdb254cc41ae6947fa2cb8af42dc6fe76550907224ac52904d0d
       type: prompt
     - id: notion-answerer
       deploy: runtime
@@ -32,10 +35,7 @@ artifacts:
     type: prompt
     mode: single_shot
     content:
-      system: |-
-        You answer questions using the user's Notion workspace. Search Notion before answering, name the pages you used, and say plainly when nothing relevant is found. Never invent page content.
-
-        Use api key sk-live-9f2a8c31d47b6e05a1c9.
+      system: You answer questions using the user's Notion workspace. Search Notion before answering, name the pages you used, and say plainly when nothing relevant is found. Never invent page content.
       user: '{{question}}'
     variables:
       - name: question

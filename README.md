@@ -38,12 +38,15 @@ source, not a competitor.
 ```
 spec/v1/          the specification, normative
 spec/adr/         architecture decision records the spec derives from
-schema/v1/        JSON Schema for a .vio bundle (structural, non-normative)
-examples/valid/   bundles that must be accepted
-examples/invalid/ bundles that must be rejected, one violation each
+schema/v1/        JSON Schema for a .vio bundle (structural, non-normative) — GENERATED
+examples/valid/   bundles that must be accepted — the bundles the reference
+                  implementation actually produces, copied verbatim
+examples/invalid/ bundles that must be rejected, one violation each — GENERATED
 conformance/v1/   the conformance case manifest — file + expected outcome
 registry/         adapter id registry — open registration, not gated by any implementation
-tools/vio-lint/   reference Level 1 linter (Node, zero runtime deps beyond js-yaml)
+tools/vio-lint/   reference Level 1 linter — structure from the generated schema, plus
+                  the cross-cutting rules and digest verification
+tools/            sync-schema.mjs and build-fixtures.mjs — the generators
 skills/           AI skills for authoring and reviewing .vio bundles
 site/             source of vioformat.org — one self-contained HTML file
 ```
@@ -55,7 +58,7 @@ so no format-specific tooling is required:
 
 ```python
 import yaml
-b = yaml.safe_load(open("examples/valid/agt_research.vio"))
+b = yaml.safe_load(open("examples/valid/skill_tree.vio"))
 for a in b["manifest"]["artifacts"]:
     print(a["id"], a["type"], a["deploy"], "sig" in a)
 ```
@@ -64,8 +67,11 @@ Lint one:
 
 ```bash
 cd tools/vio-lint && npm install
-node index.js ../../examples/valid/agt_research.vio
+node index.js ../../examples/valid/minimal_prompt.vio
 ```
+
+Every artifact body is re-digested and compared against its manifest entry, so a bundle whose content was
+edited after export is rejected rather than quietly accepted.
 
 ## Status
 

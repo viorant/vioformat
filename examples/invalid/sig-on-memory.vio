@@ -1,27 +1,86 @@
-# INVALID — §2.1: memory is integrity-only and must never carry a `sig`. Expect: reject (trust_tier).
+# A sig on a memory entry — memory is integrity-only and is never author-signed.
 vio: 1
 manifest:
-  id: bad_mem
-  name: Bad Memory
-  version: 0.1.0
+  id: research-notes
+  name: Research Notes
   composition: agent
   framework: crewai
-  org: example
-  team: docs
-  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
-  created: 2026-09-16T00:00:00Z
+  created: '2026-09-22T00:00:00.000Z'
   artifacts:
-    - { id: agent, type: agent,  deploy: runtime, digest: "sha256:1111", sig: "base64" }
-    - { id: mem,   type: memory, deploy: store,   digest: "sha256:2222", sig: "base64" }
+    - id: research-notes-prompt
+      deploy: registry
+      digest: sha256:383494bf71a4d895d8f657877af977013e544bf94aa57822fd00b306d3a9a42e
+      type: prompt
+    - id: 01M1NC0WFNSS0WWN1690VY2FR8
+      type: memory
+      deploy: store
+      digest: sha256:afd1df27aed4f56c31800909b485fbb47dff33667367cffecf0796603c7de26c
+      sig: base64signature
+    - id: 01KYRN79YYQ841RD37EKSMGKK9
+      type: memory
+      deploy: store
+      digest: sha256:1562c09a9fb2813082cda50b8ee13e7a4d8fb780194fbf0b61623fd265b7b64a
+    - id: research-notes
+      deploy: runtime
+      digest: sha256:27422f20fcc47907a706ae3d6081746bc72c2bd735b75edb4a0080e03e4bbfa8
+      type: agent
+  requires:
+    - connector: openai
+      scopes: []
+      auth: api_key
+      kind: model
+      tools: []
 artifacts:
-  - id: agent
-    type: agent
-    content: { role: R, goal: G, framework: crewai, memory: { ref: mem } }
-  - id: mem
+  - id: research-notes-prompt
+    type: prompt
+    mode: single_shot
+    content:
+      system: You answer from your own notes. Consult your memory before answering, and record anything new you learn.
+      user: '{{question}}'
+    variables:
+      - name: question
+        type: string
+        required: true
+        source: input
+        description: The question to answer.
+  - id: 01M1NC0WFNSS0WWN1690VY2FR8
     type: memory
+    layer: seed
     content: |
       ---
       meta: {id: 01M1NC0WFNSS0WWN1690VY2FR8, schemaVersion: "1"}
-      name: Memory 1
+      name: House style
+      description: Curated notes that ship with the agent.
       ---
-      text
+      Always cite a source. Never state a figure without the year it is from.
+  - id: 01KYRN79YYQ841RD37EKSMGKK9
+    type: memory
+    layer: runtime
+    content: |
+      ---
+      meta: {id: 01KYRN79YYQ841RD37EKSMGKK9, schemaVersion: "1"}
+      name: session-notes
+      description: Persistent memory for agent runs.
+      ---
+  - id: research-notes
+    type: agent
+    content:
+      role: Research assistant
+      goal: Answer from accumulated notes and keep them current.
+      framework: crewai
+      model:
+        ref: provider://openai/gpt-4o-mini
+      prompts:
+        - ref: research-notes-prompt
+      skills: []
+      memory:
+        read:
+          - 01M1NC0WFNSS0WWN1690VY2FR8
+          - 01KYRN79YYQ841RD37EKSMGKK9
+        write:
+          - 01KYRN79YYQ841RD37EKSMGKK9
+      inputs:
+        - name: question
+          type: string
+          required: true
+          description: The question to answer.

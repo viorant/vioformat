@@ -1,40 +1,61 @@
-# Both memory layers in one bundle (§1.8). A seed body ships its text; a runtime body
-# ships frontmatter only. Neither carries a sig — memory is integrity-only.
+# Both memory layers, and the agent binding that reads them.
+# A seed layer ships its curated text; a runtime layer ships frontmatter only,
+# so the write target exists on first run without carrying local history.
+# Neither carries a sig: memory is the integrity-only tier.
 vio: 1
 manifest:
-  id: agt_notes
-  name: Notetaker
-  version: 0.3.0
+  id: research-notes
+  name: Research Notes
   composition: agent
   framework: crewai
-  org: example
-  team: docs
-  signer: { certificate_id: cert_example_001, algo_id: 0x04 }
-  created: 2026-09-04T12:00:00Z
+  created: '2026-09-22T00:00:00.000Z'
   artifacts:
-    - { id: agent, type: agent,  deploy: runtime, digest: "sha256:1111", sig: "base64" }
-    - { id: seed,  type: memory, deploy: store,   digest: "sha256:2222" }
-    - { id: scratch, type: memory, deploy: store, digest: "sha256:3333" }
+    - id: research-notes-prompt
+      deploy: registry
+      digest: sha256:383494bf71a4d895d8f657877af977013e544bf94aa57822fd00b306d3a9a42e
+      type: prompt
+    - id: 01M1NC0WFNSS0WWN1690VY2FR8
+      type: memory
+      deploy: store
+      digest: sha256:afd1df27aed4f56c31800909b485fbb47dff33667367cffecf0796603c7de26c
+    - id: 01KYRN79YYQ841RD37EKSMGKK9
+      type: memory
+      deploy: store
+      digest: sha256:1562c09a9fb2813082cda50b8ee13e7a4d8fb780194fbf0b61623fd265b7b64a
+    - id: research-notes
+      deploy: runtime
+      digest: sha256:27422f20fcc47907a706ae3d6081746bc72c2bd735b75edb4a0080e03e4bbfa8
+      type: agent
+  requires:
+    - connector: openai
+      scopes: []
+      auth: api_key
+      kind: model
+      tools: []
 artifacts:
-  - id: agent
-    type: agent
+  - id: research-notes-prompt
+    type: prompt
+    mode: single_shot
     content:
-      role: Notetaker
-      goal: Keep durable notes across runs
-      framework: crewai
-      memory: { ref: seed }
-      inputs: []
-  - id: seed
+      system: You answer from your own notes. Consult your memory before answering, and record anything new you learn.
+      user: '{{question}}'
+    variables:
+      - name: question
+        type: string
+        required: true
+        source: input
+        description: The question to answer.
+  - id: 01M1NC0WFNSS0WWN1690VY2FR8
     type: memory
     layer: seed
     content: |
       ---
       meta: {id: 01M1NC0WFNSS0WWN1690VY2FR8, schemaVersion: "1"}
-      name: Memory 1
-      description: Persistent memory for agent runs.
+      name: House style
+      description: Curated notes that ship with the agent.
       ---
-      House style: short sentences, no adjectives.
-  - id: scratch
+      Always cite a source. Never state a figure without the year it is from.
+  - id: 01KYRN79YYQ841RD37EKSMGKK9
     type: memory
     layer: runtime
     content: |
@@ -43,3 +64,25 @@ artifacts:
       name: session-notes
       description: Persistent memory for agent runs.
       ---
+  - id: research-notes
+    type: agent
+    content:
+      role: Research assistant
+      goal: Answer from accumulated notes and keep them current.
+      framework: crewai
+      model:
+        ref: provider://openai/gpt-4o-mini
+      prompts:
+        - ref: research-notes-prompt
+      skills: []
+      memory:
+        read:
+          - 01M1NC0WFNSS0WWN1690VY2FR8
+          - 01KYRN79YYQ841RD37EKSMGKK9
+        write:
+          - 01KYRN79YYQ841RD37EKSMGKK9
+      inputs:
+        - name: question
+          type: string
+          required: true
+          description: The question to answer.

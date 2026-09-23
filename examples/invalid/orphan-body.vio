@@ -1,0 +1,61 @@
+# A body with no manifest index entry — every body must be indexed and digested.
+vio: 1
+manifest:
+  id: summarizer
+  name: Summarizer
+  composition: agent
+  framework: crewai
+  created: '2026-09-15T00:00:00.000Z'
+  artifacts:
+    - id: summarizer-prompt
+      deploy: registry
+      digest: sha256:60bc98762dc2aa438fb3cc1ddc6a44e11c1866ebe56860d355286f70ba32abe6
+      type: prompt
+    - id: summarizer
+      deploy: runtime
+      digest: sha256:16a546abb7772d65296296dcd1636780ca8f677f71afffa6d109d91ec926743b
+      type: agent
+  requires:
+    - connector: openai
+      scopes: []
+      auth: api_key
+      kind: model
+      tools: []
+artifacts:
+  - id: summarizer-prompt
+    type: prompt
+    mode: single_shot
+    content:
+      system: You are a concise assistant. Summarize the text you are given in exactly three bullet points. Do not add anything that is not in the text.
+      user: |-
+        Summarize this:
+
+        {{text}}
+    variables:
+      - name: text
+        type: string
+        required: true
+        source: input
+        description: The text to summarize.
+  - id: summarizer
+    type: agent
+    content:
+      role: Summarizer
+      goal: Turn any text into a three-bullet summary.
+      framework: crewai
+      model:
+        ref: provider://openai/gpt-4o-mini
+      prompts:
+        - ref: summarizer-prompt
+      skills: []
+      inputs:
+        - name: text
+          type: string
+          required: true
+          description: The text to summarize.
+  - id: unlisted-prompt
+    type: prompt
+    mode: single_shot
+    content:
+      system: Orphan.
+      user: '{{x}}'

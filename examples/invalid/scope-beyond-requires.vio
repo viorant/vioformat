@@ -1,0 +1,80 @@
+# A skill claiming page.write while manifest.requires surfaces no such scope.
+# The manifest must surface every scope a skill asks for, or auth cannot be gated.
+vio: 1
+manifest:
+  id: notion-answerer
+  name: Notion Answerer
+  composition: agent
+  framework: crewai
+  created: '2026-09-15T00:00:00.000Z'
+  artifacts:
+    - id: notion-answerer-prompt
+      deploy: registry
+      digest: sha256:87a2df4c6166fdb254cc41ae6947fa2cb8af42dc6fe76550907224ac52904d0d
+      type: prompt
+    - id: notion-tools
+      deploy: runtime
+      digest: sha256:442ab85bacf7809ee5c92025f69a9ee562e7a44a2f8ca44f65a551b68c054657
+      type: skill
+      kind: declarative
+    - id: notion-answerer
+      deploy: runtime
+      digest: sha256:408c315c4d39eec96dd052e950fb8455a28e711a48d5f833ce328342234a45cc
+      type: agent
+  requires:
+    - connector: openai
+      scopes: []
+      auth: api_key
+      kind: model
+      tools: []
+    - connector: https://mcp.notion.com/mcp
+      scopes: []
+      auth: oauth
+      kind: connector
+      tools:
+        - notion-search
+artifacts:
+  - id: notion-answerer-prompt
+    type: prompt
+    mode: single_shot
+    content:
+      system: You answer questions using the user's Notion workspace. Search Notion before answering, name the pages you used, and say plainly when nothing relevant is found. Never invent page content.
+      user: '{{question}}'
+    variables:
+      - name: question
+        type: string
+        required: true
+        source: input
+        description: The question to answer from Notion.
+  - id: notion-tools
+    type: skill
+    content: |
+      ---
+      name: notion-tools
+      description: Search Notion.
+      ---
+
+      Use notion-search to find pages.
+    tools:
+      - ref: notion-search
+        kind: mcp
+        connector: https://mcp.notion.com/mcp
+        scopes:
+          - page.write
+  - id: notion-answerer
+    type: agent
+    content:
+      role: Workspace researcher
+      goal: Answer questions from the user's Notion workspace, citing the pages used.
+      framework: crewai
+      model:
+        ref: provider://openai/gpt-4o-mini
+      prompts:
+        - ref: notion-answerer-prompt
+      skills:
+        - ref: notion-tools
+      inputs:
+        - name: question
+          type: string
+          required: true
+          description: The question to answer from Notion.

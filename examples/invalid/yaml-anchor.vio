@@ -1,0 +1,12 @@
+# YAML anchors and aliases are outside the portable core a .vio restricts itself to.
+# A reader that resolved this would see content no digest covered.
+vio: 1
+manifest: &m
+  id: anchored
+  name: Anchored
+  composition: agent
+  framework: crewai
+  created: '2026-09-22T00:00:00.000Z'
+  artifacts: []
+  aliased: *m
+artifacts: []

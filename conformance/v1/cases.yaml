@@ -1,0 +1,70 @@
+# Conformance case manifest — format version 1.
+#
+# Each case names a fixture, the expected outcome and the rule id a conforming
+# implementation must report. Run with: cd tools/vio-lint && npm test
+#
+# The valid fixtures are not written for this suite. They are the bundles the
+# reference implementation actually produces — the same ones `vio init`
+# scaffolds into a new workspace — copied verbatim, digests intact. A fixture
+# that only this suite can accept tests the suite, not the format.
+version: 1
+level: 1          # these cases exercise Level 1 (Reader); Level 2 and 3 suites follow
+cases:
+  - file: examples/valid/minimal_prompt.vio
+    expect: accept
+    warnings: [missing_signature]
+    note: The smallest deployable agent — one prompt, one hosted model, no tools.
+  - file: examples/valid/oauth_connector.vio
+    expect: accept
+    warnings: [missing_signature]
+    note: An agent calling an OAuth MCP connector; no token anywhere in the bundle (§1.6).
+  - file: examples/valid/skill_tree.vio
+    expect: accept
+    warnings: [missing_signature]
+    note: A declarative skill alongside its prompt and agent (§1.6).
+  - file: examples/valid/memory_layers.vio
+    expect: accept
+    warnings: [missing_signature]
+    note: Both memory layers and the agent read/write binding; neither carries a sig (§1.8, §2.1).
+
+  - file: examples/invalid/unknown-format-version.vio
+    expect: reject
+    rule: unsupported_version
+    section: "1"
+  - file: examples/invalid/yaml-anchor.vio
+    expect: reject
+    rule: plain_yaml
+    section: "1"
+  - file: examples/invalid/reserved-deploy-value.vio
+    expect: reject
+    rule: reserved_value
+    section: "1.3"
+  - file: examples/invalid/reserved-memory-layer.vio
+    expect: reject
+    rule: reserved_value
+    section: "1.8"
+  - file: examples/invalid/sig-on-memory.vio
+    expect: reject
+    rule: trust_tier
+    section: "2.1"
+  - file: examples/invalid/orphan-body.vio
+    expect: reject
+    rule: orphan_body
+    section: "1.3"
+  - file: examples/invalid/digest-mismatch.vio
+    expect: reject
+    rule: digest_mismatch
+    section: "2.3"
+    note: A body edited after its digest was computed — the tampering case digests exist to catch.
+  - file: examples/invalid/scope-beyond-requires.vio
+    expect: reject
+    rule: scope_widening
+    section: "1.6"
+  - file: examples/invalid/undeclared-slot.vio
+    expect: reject
+    rule: undeclared_variable
+    section: "2.4"
+  - file: examples/invalid/literal-credential.vio
+    expect: reject
+    rule: credential_literal
+    section: conformance-invariants

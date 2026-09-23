@@ -9,21 +9,15 @@ must never do. Cases are in [`conformance/v1/cases.yaml`](../../conformance/v1/c
 - Requires `vio` to be an integer and rejects a version it does not implement.
 - Treats every value outside the reserved sets for `composition`, `type`, `kind`, `runtime`, `deploy`, `source`,
   `tools[].kind`, `mode` and `layer` as reserved, and rejects cleanly.
-- Rejects any unknown key, at any depth. Every object in a `.vio` is closed.
-- Rejects a document that does not parse identically under the YAML 1.1 and YAML 1.2 core schemas — a bundle must
-  not mean different things to different parsers.
-- **Recomputes every digestable body's digest and rejects a mismatch** (specification §2.2). In 1.0 signing is not
-  active, so the digest is the entire integrity story: a reader that skips this provides no integrity at all.
-  This was a Level 2 obligation in revisions 1–4, which left the base level unable to detect an edited body.
-- Rejects a `sig` on a memory or model entry.
 - Reads a memory body with no `layer` as `seed`.
-- Never interprets a `sig` as verified.
+- Never interprets a `sig` or `digest` as verified.
 
 ## Level 2 — Verifier
 
-Everything in Level 1, plus signature verification. **No Level 2 implementation exists in 1.0**, because signing is
-not active; this defines the level for when it is.
+Everything in Level 1, plus:
 
+- Recomputes each artifact's `digest` over its canonical form: RFC 8785 for structured content; sorted-path,
+  per-file NFC map for skill trees; `{ content }` only for memory.
 - Verifies per-artifact `sig` against the signer's registered key for the declared `algo_id`.
 - Verifies the `vio_bundle` signature over the canonical manifest, and therefore every listed digest.
 - Reports a digest mismatch on a digest-only artifact as a bundle verification failure, not a warning.
@@ -31,8 +25,7 @@ not active; this defines the level for when it is.
 
 ## Level 3 — Deployer
 
-Everything in Level 1 — and, where signing is active, Level 2 — with verification preceding every other step. In
-1.0 that means a conforming deployer is a Level 1 reader that additionally:
+Everything in Level 2, and verification precedes every other step, plus:
 
 - Routes each artifact by its declared `deploy` value; never infers a destination.
 - Resolves `ref`s on the target and checks the resolved bytes against the manifest digest before use.
@@ -49,5 +42,4 @@ Everything in Level 1 — and, where signing is active, Level 2 — with verific
 | Secrets never enter the file | A bundle containing a literal credential where a `secret://` or `connection://` handle belongs is non-conforming, whatever its signatures say. |
 | Capability is not widened silently | No implementation may grant a tool, connector or scope that is not declared in a signed skill and surfaced in `manifest.requires[]`. |
 | Weights are never embedded | A `type: model` artifact with a body is non-conforming. |
-| Producers ship after consumers | A producer must not emit a field that the deployed consumer population rejects. Because every object is closed, this applies to *every* added field, not only risky ones. The memory `layer` rollout is the reference case. |
-| Digests are recomputed, never trusted | An implementation that reads `digest` without recomputing it from the body has verified nothing. |
+| Producers ship after consumers | A producer must not emit a field that the deployed consumer population rejects. The memory `layer` rollout is the reference case. |

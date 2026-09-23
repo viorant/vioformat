@@ -1,55 +1,25 @@
-# vio: 2 — a reader rejects a format version it does not implement.
+# INVALID for a v1 reader — §1: a reader rejects a format version it does not implement. Expect: reject (unsupported_version).
+# The smallest conforming bundle: one signed prompt, deployed to a registry.
 vio: 2
 manifest:
-  id: summarizer
-  name: Summarizer
-  composition: agent
-  framework: crewai
-  created: '2026-09-15T00:00:00.000Z'
+  id: hello
+  name: Hello
+  version: 0.1.0
+  composition: prompt
+  org: example
+  team: docs
+  signer: { certificate_id: cert_example_001, algo_id: 0x02 }
+  created: 2026-09-16T00:00:00Z
   artifacts:
-    - id: summarizer-prompt
-      deploy: registry
-      digest: sha256:60bc98762dc2aa438fb3cc1ddc6a44e11c1866ebe56860d355286f70ba32abe6
-      type: prompt
-    - id: summarizer
-      deploy: runtime
-      digest: sha256:16a546abb7772d65296296dcd1636780ca8f677f71afffa6d109d91ec926743b
-      type: agent
-  requires:
-    - connector: openai
-      scopes: []
-      auth: api_key
-      kind: model
-      tools: []
+    - { id: greet, type: prompt, deploy: registry, digest: "sha256:0000", sig: "base64" }
 artifacts:
-  - id: summarizer-prompt
+  - id: greet
     type: prompt
     mode: single_shot
     content:
-      system: You are a concise assistant. Summarize the text you are given in exactly three bullet points. Do not add anything that is not in the text.
-      user: |-
-        Summarize this:
-
-        {{text}}
+      system: |
+        You greet {{name}} warmly.
     variables:
-      - name: text
-        type: string
-        required: true
-        source: input
-        description: The text to summarize.
-  - id: summarizer
-    type: agent
-    content:
-      role: Summarizer
-      goal: Turn any text into a three-bullet summary.
-      framework: crewai
-      model:
-        ref: provider://openai/gpt-4o-mini
-      prompts:
-        - ref: summarizer-prompt
-      skills: []
-      inputs:
-        - name: text
-          type: string
-          required: true
-          description: The text to summarize.
+      - { name: name, type: string, required: true, source: input }
+    bindings:
+      name: input.name

@@ -57,16 +57,6 @@ ship first.
 
 | | |
 |---|---|
-| `vio: N` | The format version, an integer at the top of every bundle. Increments when a reader built against the previous version could misread — or reject — a bundle. **This includes adding a field.** |
-| Specification revision | The prose document carries a revision number and date. Revisions correct, clarify and record errata. A revision that *adds a field* also increments `vio`. |
-| `manifest.version` | The package's own semantic version, chosen by its author. Optional, and unrelated to the format version. |
-
-**Additive change is not free.** Every object in a `.vio` is closed, so a bundle carrying an unknown key is
-*rejected* by a reader built before that key existed — there is no ignored-unknown-field escape hatch and no
-extension slot. Revisions 1–4 stated the opposite (errata `E-005`); the memory `layer` rollout had already proved
-it wrong in practice.
-
-The consequence for planning: **every new field is a `vio: 2`**, and rollout runs consumers-first — the whole
-consumer population must accept a field before any producer emits one. This is a deliberate trade. Closed objects
-let a reader fail loudly rather than silently mis-deploy an agent it only partly understands, which in this domain
-is worth more than cheap extensibility. It is recorded here so it is planned around rather than discovered.
+| `vio: N` | The format version, an integer at the top of every bundle. Increments only when a reader built against the previous version could misread a bundle. Additive fields do not increment it. |
+| Specification revision | The prose document carries a revision number and date. Revisions can add fields, tighten wording or record errata without changing `vio`. |
+| `manifest.version` | The package's own semantic version, chosen by its author. Unrelated to the format version. |
